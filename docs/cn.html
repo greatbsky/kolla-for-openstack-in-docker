@@ -4,8 +4,859 @@
 	<title>The guide of installation kolla for openstack in docker</title>
 </head>
 <body>
-	<div class="wraper">
-        <h1>The guide of installation kolla for openstack in docker</h1>
-	</div>
+	<h1 style="text-align: center;"><strong>Installation of kolla for openstack in docker</strong></h1>
+
+	<p><span style="font-size:18px">OpenStack is a cloud operating system that controls large pools of compute, storage, and networking resources throughout a datacenter, all managed through a dashboard that gives administrators control while empowering their users to provision resources through a web interface.<br />
+	Docker is the world&#39;s leading software containerization platform. Docker containers wrap a piece of software in a complete filesystem that contains everything needed to run: code, runtime, system tools, system libraries &ndash; anything that can be installed on a server.</span></p>
+
+	<p><span style="font-size:18px">what&#39;s kolla? Kolla&#39;s mission statement is:&nbsp;To provide production-ready containers and deployment tools for operating OpenStack clouds.</span></p>
+
+	<p><span style="font-size:18px">Some weeks ago, I deployed one private cloud for my company on three node. I ran into many problems, and resolve them all, it&#39;s not very easy for lack document. so I write a detail document to show my process of installation, maybe can help someone fix some issue.</span></p>
+
+	<p><span style="font-size:18px">This public doc is my note in develop environment, not production environment. I have ever redone&nbsp;some steps so maybe there are some id or output mistake.</span></p>
+
+	<p>&nbsp;</p>
+
+	<p><span style="font-size:18px"><strong>Phsical Node:</strong></span></p>
+
+	<p><span style="font-size:18px">192.168.1.61&nbsp;&nbsp; &nbsp;oscontroller<br />
+	192.168.1.91&nbsp;&nbsp; &nbsp;osnova1<br />
+	192.168.1.92&nbsp;&nbsp; &nbsp;osnova2</span></p>
+
+	<p><span style="font-size:18px">firstly you must config the initialize environment on all&nbsp;node.</span></p>
+
+	<h1><strong><span style="font-size:18px">1.1 config host names</span></strong></h1>
+
+	<p><span style="font-size:18px">vi /etc/hostname</span></p>
+
+	<p><span style="font-size:18px">vi /etc/hosts</span><br />
+	<span style="font-size:12px"># controller<br />
+	192.168.1.61 &nbsp; &nbsp; &nbsp; oscontroller<br />
+	# compute<br />
+	192.168.1.91 &nbsp; &nbsp; &nbsp; osnova1<br />
+	192.168.1.92 &nbsp; &nbsp; &nbsp; osnova2</span></p>
+
+	<h1><span style="font-size:18px"><strong>1.2 verify connection between your nodes.</strong><br />
+	ping oscontroller</span></h1>
+
+	<p><span style="font-size:18px">ping osnova1</span><br />
+	<span style="font-size:18px">ping osnova2</span></p>
+
+	<h1><strong><span style="font-size:18px">1.3 update you os, and install some softs</span></strong></h1>
+
+	<p><span style="font-size:18px">yum update</span></p>
+
+	<p><span style="font-size:18px">yum install yum-plugin-priorities -y</span></p>
+
+	<p><span style="font-size:18px">yum install epel-release -y</span></p>
+
+	<p><span style="font-size:18px">yum install wget -y</span></p>
+
+	<p><strong><span style="font-size:18px">1.4 verify you cpu support VT</span></strong></p>
+
+	<p>[root@oscontroller ~]# egrep -c &#39;(vmx|svm)&#39; /proc/cpuinfo<br />
+	2<br />
+	[root@osnova1 ~]# egrep -c &#39;(vmx|svm)&#39; /proc/cpuinfo<br />
+	4<br />
+	[root@osnova2 ~]# egrep -c &#39;(vmx|svm)&#39; /proc/cpuinfo<br />
+	4</p>
+
+	<h1><strong><span style="font-size:18px">1.5 config login without password between all nodes.</span></strong></h1>
+
+	<p><span style="font-size:18px">[root@oscontroller ~]# ssh-keygen -t rsa -P &#39;&#39; -f ~/.ssh/id_rsa<br />
+	[root@osnova1 ~]# ssh-keygen -t rsa -P &#39;&#39; -f ~/.ssh/id_rsa<br />
+	[root@osnova2 ~]# ssh-keygen -t rsa -P &#39;&#39; -f ~/.ssh/id_rsa<br />
+	[root@oscontroller .ssh]# scp root@osnova1:~/.ssh/id_rsa.pub id_rsa.nova1.pub<br />
+	[root@oscontroller .ssh]# scp root@osnova2:~/.ssh/id_rsa.pub id_rsa.nova2.pub<br />
+	[root@oscontroller .ssh]# cat id_rsa.pub &gt;&gt; ~/.ssh/authorized_keys<br />
+	[root@oscontroller .ssh]# cat id_rsa.nova1.pub &gt;&gt; ~/.ssh/authorized_keys<br />
+	[root@oscontroller .ssh]# cat id_rsa.nova2.pub &gt;&gt; ~/.ssh/authorized_keys<br />
+	[root@oscontroller .ssh]# less authorized_keys<br />
+	[root@oscontroller .ssh]# less authorized_keys</span><br />
+	<span style="font-size:12px">ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCvsqNEBby5QOlDwpTlL1CAtqnzgQJ96U1JlEXfJ11I4JUk617WriDfNtDsPewzBhf1NfyaXoHqN5Bl9S8Ap2Gov4LCuUsa35qTE9uGJSAfnuJc3zTp2ciX0SZwanoCORzzY4hPB38V1Tg6JFsvVFzJanWk6Lb2zPm5F6RmikY3O4PTvBJFsL1rTzpr9UH37qDEZJ97jonCHeFSmvVk0Y+uvgniU4ttVupJS6Yfr2ITWHmt0/WOTl9d7AW+hufkrMuPUUXLx3cT+wAMIGQ7+/aVWxonL7TFtFXFND/4BLyx1M3luQho8mHBENDt94bUQQZGVIrj1Bb1FfobKkb6eGWb root@oscontroller<br />
+	ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCUrNutfi4uhcThQL2pPbXmfZ2wSMv5W8tV5yzpeYLaCpSU9d+rCpcgBXPQA2v+on1JAFxFCC+J8A63OWiIoBtwn9FLzI4Takfr+HmOSetVJMshxolYZ+/S6Qjs+hxBLRL9Qwpwtu6c19qGhz14W8gaNeHEDFoD705kk/5PhdOsxYpL+v/GXIvUBlR4zF9OJGrxNJIA48bqHOGBqBtcZbM4Vbre3Q52aVFxI34Rs1N344YgSJSg4wnzlOIvW+Vq1CClwRT9QRms2wAPcrRb4pva7c30+6wCGncPM64rt4gw0vDc1cxR8Jp6Gs/KYWU5roqXdcl72lEgLdE8aM9qQLoZ root@osnova1<br />
+	ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDeT8fy3K8XVc51JRvM/cF9DaQHL/e30JMebPBjUCf+/YdMDXkbIwVLGurMhDf8RVA7F5F0VxAe10kYeTv1BugkP34VVSDb80yHAyT8R/TOfi8z2WTREtT2eeuUVfuJI3dPmT+r+/7JowLyznJm2awRm9G2IOtUHZBn46/fTksdEtd7RLaWR7upkR37mwNJ8Qc7f3s9bYdNyn/LC9RKdNQWCbLZdnVbRRx5ixzt7snCClfE4djlO7cdPzsR+fggk9SIz9MJT12ePSgaqRBaTZgMuo+0NhB41NBK6Dx1IqdmxBhQlHufGG8sXhPDg3yyUONC4zK+GSjaLet1dCd4SAa1 root@osnova2</span><br />
+	<span style="font-size:18px">[root@oscontroller .ssh]# scp authorized_keys root@osnova1:~/.ssh/authorized_keys<br />
+	[root@oscontroller .ssh]# scp authorized_keys root@osnova2:~/.ssh/authorized_keys</span></p>
+
+	<p><br />
+	<strong><span style="font-size:18px">1.6 config network</span></strong></p>
+
+	<p><span style="font-size:18px">[root@oscontroller ~]# cat /etc/sysconfig/network-scripts/ifcfg-em1</span><br />
+	<span style="font-size:12px">TYPE=Ethernet<br />
+	BOOTPROTO=none<br />
+	DEFROUTE=yes<br />
+	IPV4_FAILURE_FATAL=no<br />
+	IPV6INIT=yes<br />
+	IPV6_AUTOCONF=yes<br />
+	IPV6_DEFROUTE=yes<br />
+	IPV6_FAILURE_FATAL=no<br />
+	NAME=em1<br />
+	UUID=74c4c813-646e-4de4-a45d-25770ae70d1e<br />
+	DEVICE=em1<br />
+	ONBOOT=yes<br />
+	IPADDR=192.168.1.61<br />
+	PREFIX=24<br />
+	GATEWAY=192.168.1.1<br />
+	DNS1=8.8.8.8<br />
+	IPV6_PEERDNS=yes<br />
+	IPV6_PEERROUTES=yes<br />
+	IPV6_PRIVACY=no</span><br />
+	<span style="font-size:18px">[root@oscontroller ~]# cat /etc/sysconfig/network-scripts/ifcfg-em2 &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;#this network can not be set ip, otherwise the instance can not be access.</span><br />
+	<span style="font-size:12px">TYPE=Ethernet<br />
+	<strong>BOOTPROTO=none</strong><br />
+	DEFROUTE=yes<br />
+	NAME=em2<br />
+	UUID=85095748-b497-455d-b94f-1ef1156ed9c3<br />
+	DEVICE=em2<br />
+	<strong>ONBOOT=yes</strong></span><br />
+	<span style="font-size:18px">[root@osnova1&nbsp;~]# cat /etc/sysconfig/network-scripts/ifcfg-em1</span><br />
+	<span style="font-size:12px">TYPE=Ethernet<br />
+	BOOTPROTO=none<br />
+	DEFROUTE=yes<br />
+	IPV4_FAILURE_FATAL=no<br />
+	IPV6INIT=yes<br />
+	IPV6_AUTOCONF=yes<br />
+	IPV6_DEFROUTE=yes<br />
+	IPV6_FAILURE_FATAL=no<br />
+	NAME=em1<br />
+	UUID=ed52b5f3-1f6d-4fc6-a488-23ab19ab08e1<br />
+	DEVICE=em1<br />
+	ONBOOT=yes<br />
+	IPADDR=192.168.1.91<br />
+	PREFIX=24<br />
+	GATEWAY=192.168.1.1<br />
+	DNS1=8.8.8.8<br />
+	IPV6_PEERDNS=yes<br />
+	IPV6_PEERROUTES=yes<br />
+	IPV6_PRIVACY=no</span><br />
+	<span style="font-size:18px">[root@osnova1&nbsp;~]# cat /etc/sysconfig/network-scripts/ifcfg-em2&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;#this network can not be set ip</span><br />
+	<span style="font-size:12px">TYPE=Ethernet<br />
+	BOOTPROTO=none<br />
+	DEFROUTE=yes<br />
+	NAME=em2<br />
+	UUID=8e3f62a3-b878-4e96-ac80-c1456de7fa49<br />
+	DEVICE=em2<br />
+	ONBOOT=yes</span><br />
+	<span style="font-size:18px">[root@osnova2&nbsp;~]# cat /etc/sysconfig/network-scripts/ifcfg-em1</span><br />
+	<span style="font-size:12px">TYPE=Ethernet<br />
+	BOOTPROTO=none<br />
+	DEFROUTE=yes<br />
+	IPV4_FAILURE_FATAL=no<br />
+	IPV6INIT=yes<br />
+	IPV6_AUTOCONF=yes<br />
+	IPV6_DEFROUTE=yes<br />
+	IPV6_FAILURE_FATAL=no<br />
+	NAME=em1<br />
+	UUID=ac949101-9e4d-47e8-971f-b0e67b1b4f17<br />
+	DEVICE=em1<br />
+	ONBOOT=yes<br />
+	IPADDR=192.168.1.92<br />
+	PREFIX=24<br />
+	GATEWAY=192.168.1.1<br />
+	DNS1=8.8.8.8<br />
+	IPV6_PEERDNS=yes<br />
+	IPV6_PEERROUTES=yes<br />
+	IPV6_PRIVACY=no</span><br />
+	<span style="font-size:18px">[root@osnova2&nbsp;~]# cat /etc/sysconfig/network-scripts/ifcfg-em2&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;#this network can not be set ip</span><br />
+	<span style="font-size:12px">TYPE=Ethernet<br />
+	BOOTPROTO=none<br />
+	DEFROUTE=yes<br />
+	NAME=em2<br />
+	UUID=0920f7c0-a406-4170-9d70-706b65d485d6<br />
+	DEVICE=em2<br />
+	ONBOOT=yes</span></p>
+
+	<p>&nbsp;</p>
+
+	<p><strong><span style="font-size:18px">1.7 install dependency of kolla</span></strong></p>
+
+	<p><span style="font-size:18px">yum install python-pip -y<br />
+	pip install -U pip<br />
+	pip -V<br />
+	[root@oscontroller ~]# yum install ansible1.9.noarch&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;#或 pip install -U ansible==1.9.4 卸载pip uninstall ansbile 或yum remove ansible<br />
+	[root@oscontroller ~]# ansible --version</span><br />
+	<span style="font-size:12px">ansible 1.9.6<br />
+	&nbsp; configured module search path = None</span><br />
+	<span style="font-size:18px">yum install gcc gcc-c++ -y</span><br />
+	<span style="font-size:18px">&nbsp;</span></p>
+
+	<p><strong><span style="font-size:18px">1.8 config NTP</span></strong></p>
+
+	<p>yum install ntp -y<br />
+	systemctl enable ntpd.service<br />
+	systemctl start ntpd.service<br />
+	yum install chrony -y<br />
+	[root@oscontroller ~]# vi /etc/chrony.conf<br />
+	<span style="font-size:12px"># Use public servers from the pool.ntp.org project.<br />
+	# Please consider joining the pool (http://www.pool.ntp.org/join.html).<br />
+	server 0.centos.pool.ntp.org iburst<br />
+	server 1.centos.pool.ntp.org iburst<br />
+	server 2.centos.pool.ntp.org iburst<br />
+	server 3.centos.pool.ntp.org iburst</span></p>
+
+	<p><span style="font-size:12px"># Ignore stratum in source selection.<br />
+	stratumweight 0</span></p>
+
+	<p><span style="font-size:12px"># Record the rate at which the system clock gains/losses time.<br />
+	driftfile /var/lib/chrony/drift</span></p>
+
+	<p><span style="font-size:12px"># Enable kernel RTC synchronization.<br />
+	rtcsync</span></p>
+
+	<p><span style="font-size:12px"># In first three updates step the system clock instead of slew<br />
+	# if the adjustment is larger than 10 seconds.<br />
+	makestep 10 3</span></p>
+
+	<p><span style="font-size:12px"># Allow NTP client access from local network.<br />
+	#allow 192.168/16<br />
+	<strong>allow 192.168.1.0/24</strong></span><br />
+	[root@<strong>osnova1 osnova2</strong>&nbsp;~]# vi /etc/chrony.conf<br />
+	<span style="font-size:12px"># Use public servers from the pool.ntp.org project.<br />
+	# Please consider joining the pool (http://www.pool.ntp.org/join.html).<br />
+	server 0.centos.pool.ntp.org iburst<br />
+	server 1.centos.pool.ntp.org iburst<br />
+	server 2.centos.pool.ntp.org iburst<br />
+	server 3.centos.pool.ntp.org iburst<br />
+	server oscontroller iburst<br />
+	systemctl enable chronyd.service<br />
+	systemctl start chronyd.service<br />
+	chronyc sources</span></p>
+
+	<p><strong><span style="font-size:18px">1.9 config firwall</span></strong></p>
+
+	<p>@oscontroller<br />
+	firewall-cmd --permanent --zone=public --add-port=80/tcp<br />
+	firewall-cmd --permanent --zone=public --add-port=443/tcp<br />
+	firewall-cmd --permanent --zone=public --add-port=3306/tcp<br />
+	firewall-cmd --permanent --zone=public --add-port=5672/tcp<br />
+	firewall-cmd --permanent --zone=public --add-port=5000/tcp<br />
+	firewall-cmd --permanent --zone=public --add-port=8082/tcp<br />
+	firewall-cmd --permanent --zone=public --add-port=8773-8775/tcp<br />
+	firewall-cmd --permanent --zone=public --add-port=8386/tcp<br />
+	firewall-cmd --permanent --zone=public --add-port=9696/tcp<br />
+	firewall-cmd --permanent --zone=public --add-port=35357/tcp</p>
+
+	<p>firewall-cmd --permanent --zone=public --add-port=6080-6082/tcp<br />
+	firewall-cmd --permanent --zone=public --add-port=5900-5999/tcp<br />
+	firewall-cmd --permanent --zone=public --add-port=9191/tcp<br />
+	firewall-cmd --permanent --zone=public --add-port=9292/tcp<br />
+	firewall-cmd --permanent --zone=public --add-port=8776/tcp<br />
+	firewall-cmd --permanent --zone=public --add-port=8777/tcp<br />
+	firewall-cmd --permanent --zone=public --add-port=8000/tcp<br />
+	firewall-cmd --permanent --zone=public --add-port=8003/tcp<br />
+	firewall-cmd --permanent --zone=public --add-port=8004/tcp<br />
+	firewall-cmd --permanent --zone=public --add-port=6000-6002/tcp<br />
+	firewall-cmd --permanent --zone=public --add-port=873/tcp<br />
+	firewall-cmd --permanent --zone=public --add-port=3260/tcp<br />
+	firewall-cmd --permanent --zone=public --add-port=8080/tcp</p>
+
+	<p>firewall-cmd --permanent --zone=public --add-port=90/tcp&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;#nginx for images</p>
+
+	<p>firewall-cmd --reload<br />
+	firewall-cmd --list-all<br />
+	systemctl restart firewalld</p>
+
+	<p><br />
+	@osnova1 &amp; osnova2</p>
+
+	<p>firewall-cmd --permanent --zone=public --add-port=5900-5999/tcp&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;#Compute ports for access to virtual machine consoles<br />
+	firewall-cmd --permanent --zone=public --add-port=8022/tcp</p>
+
+	<p>firewall-cmd --reload<br />
+	firewall-cmd --list-all<br />
+	systemctl restart firewalld</p>
+
+	<p><strong><span style="font-size:18px">1.10 config selinux</span></strong></p>
+
+	<p><span style="font-size:18px">getenforce&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;#set selinux=disable, otherwise the vm instances can not be access from external network<br />
+	vi /etc/selinux/config</span><br />
+	<span style="font-size:12px">SELINUX=disabled</span></p>
+
+	<p>&nbsp;</p>
+
+	<p>&nbsp;</p>
+
+	<p><strong><span style="font-size:18px">2. install kolla&nbsp;with source type</span></strong></p>
+
+	<p><span style="font-size:18px">[root@oscontroller ~]# yum install git -y<br />
+	[root@oscontroller ~]# cd /data/Iaas/OpenStack/<br />
+	[root@oscontroller OpenStack]# git clone https://git.openstack.org/openstack/kolla<br />
+	[root@oscontroller OpenStack]# cd kolla/<br />
+	[root@oscontroller kolla]# git checkout stable/mitaka &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;# change branch, for now, I choose&nbsp;stable/mitaka for stable and less bug.</span><br />
+	<span style="font-size:12px">Branch stable/mitaka set up to track remote branch stable/mitaka from origin.<br />
+	Switched to a new branch &#39;stable/mitaka&#39;</span><br />
+	<span style="font-size:18px">[root@oscontroller kolla]# cd ..<br />
+	[root@oscontroller OpenStack]# pip install -r kolla/requirements.txt -r kolla/test-requirements.txt<br />
+	[root@oscontroller OpenStack]# pip install kolla/<br />
+	[root@oscontroller OpenStack]# cd kolla<br />
+	[root@oscontroller kolla]# cp -r etc/kolla /etc/<br />
+	[root@all ~]# yum install python-devel libffi-devel openssl-devel gcc -y<br />
+	[root@oscontroller kolla]# pip install -U python-openstackclient python-neutronclient<br />
+	[root@oscontroller kolla]# pip install tox<br />
+	[root@oscontroller kolla]# tox -e genconfig</span><br />
+	<span style="font-size:12px">genconfig create: /data/Iaas/OpenStack/kolla/.tox/genconfig<br />
+	genconfig installdeps: -r/data/Iaas/OpenStack/kolla/requirements.txt, -r/data/Iaas/OpenStack/kolla/test-requirements.txt<br />
+	genconfig develop-inst: /data/Iaas/OpenStack/kolla<br />
+	genconfig installed: appdirs==1.4.0,Babel==2.3.4,backports.ssl-match-hostname==3.5.0.1,bandit==1.1.0,bashate==0.5.1,beautifulsoup4==4.5.1,cliff==2.2.0,cmd2==0.6.8,debtcollector==1.8.0,docker-py==1.10.3,docker-pycreds==0.2.1,docutils==0.12,extras==1.0.0,fixtures==3.0.0,flake8==2.5.5,funcsigs==1.0.2,functools32==3.2.3.post2,futures==3.0.5,gitdb==0.6.4,GitPython==2.0.8,graphviz==0.5.1,hacking==0.11.0,ipaddress==1.0.17,iso8601==0.1.11,Jinja2==2.8,jsonpatch==1.14,jsonpointer==1.10,jsonschema==2.5.1,kazoo==2.2.1,keystoneauth1==2.12.1,-e git+https://git.openstack.org/openstack/kolla@99683643653f4859e47a157647463b6eed074b04#egg=kolla,linecache2==1.0.0,MarkupSafe==0.23,mccabe==0.2.1,mock==2.0.0,monotonic==1.2,mox3==0.18.0,msgpack-python==0.4.8,netaddr==0.7.18,netifaces==0.10.5,os-client-config==1.21.1,osc-lib==1.1.0,oslo.config==3.17.0,oslo.context==2.9.0,oslo.i18n==3.9.0,oslo.log==3.16.0,oslo.serialization==2.13.0,oslo.utils==3.16.0,oslosphinx==4.7.0,oslotest==2.10.0,pbr==1.10.0,pep8==1.5.7,positional==1.1.1,prettytable==0.7.2,pycrypto==2.6.1,pyflakes==0.8.1,Pygments==2.1.3,pyinotify==0.9.6,pyparsing==2.1.9,python-barbicanclient==4.1.0,python-ceilometerclient==2.6.1,python-cinderclient==1.9.0,python-dateutil==2.5.3,python-glanceclient==2.5.0,python-heatclient==1.4.0,python-keystoneclient==2.3.1,python-mimeparse==1.5.2,python-neutronclient==6.0.0,python-novaclient==6.0.0,python-subunit==1.2.0,python-swiftclient==3.1.0,pytz==2016.6.1,PyYAML==3.12,reno==1.8.0,requests==2.10.0,requestsexceptions==1.1.3,rfc3986==0.4.1,simplejson==3.8.2,six==1.10.0,smmap==0.9.0,Sphinx==1.2.3,stevedore==1.17.1,testrepository==0.0.20,testscenarios==0.5.0,testtools==2.2.0,traceback2==1.4.0,unicodecsv==0.14.1,unittest2==1.1.0,warlock==1.2.0,websocket-client==0.37.0,wrapt==1.10.8,zake==0.2.2<br />
+	genconfig runtests: PYTHONHASHSEED=&#39;1214607384&#39;<br />
+	genconfig runtests: commands[0] | oslo-config-generator --config-file etc/oslo-config-generator/kolla-build.conf<br />
+	WARNING:stevedore.named:Could not load kolla<br />
+	__________________________________________________________________________________________________________________ summary __________________________________________________________________________________________________________________<br />
+	&nbsp; genconfig: commands succeeded<br />
+	&nbsp; congratulations :)</span></p>
+
+	<p>&nbsp;</p>
+
+	<p>&nbsp;</p>
+
+	<p><strong><span style="font-size:18px">3.1 install docker on all nodes</span></strong></p>
+
+	<p><span style="font-size:18px">[root@all ~]# curl -sSL https://get.docker.com/ | sh<br />
+	[root@all ~]# docker --version<br />
+	[root@all ~]# usermod -aG docker root<br />
+	[root@all ~]# tee /etc/sysconfig/docker &nbsp;&lt;&lt;-&#39;EOF&#39;<br />
+	DOCKER_OPTS=&quot;--insecure-registry 192.168.1.61:4000&quot;<br />
+	EOF<br />
+	[root@all ~]# mkdir -p /etc/systemd/system/docker.service.d&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;# Create the drop-in unit directory for docker.service<br />
+	[root@all ~]# vi /etc/systemd/system/docker.service.d/kolla.conf<br />
+	[Service]<br />
+	MountFlags=shared<br />
+	EnvironmentFile=-/etc/sysconfig/docker<br />
+	#EnvironmentFile=-/etc/sysconfig/docker-storage<br />
+	#EnvironmentFile=-/etc/sysconfig/docker-network<br />
+	ExecStart=<br />
+	ExecStart=/usr/bin/dockerd --insecure-registry 192.168.1.61:4000<br />
+	#ExecStart=/usr/bin/dockerd $DOCKER_OPTS<br />
+	[root@all ~]# systemctl daemon-reload<br />
+	[root@all ~]# systemctl restart docker&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;# systemctl daemon-reload &amp; systemctl restart docker<br />
+	[root@all ~]# systemctl status docker.service<br />
+	[root@all ~]# systemctl enable docker.service<br />
+	[root@all ~]# yum install python-docker-py -y&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;# or pip install -U docker-py</span><br />
+	&nbsp;</p>
+
+	<p><strong><span style="font-size:18px">3.2 start up private registry on oscontroller</span></strong></p>
+
+	<p><span style="font-size:18px">[root@oscontroller ~]# docker run -d -p 4000:5000 --restart=always -v /data/Iaas/Docker/Volumes/Registry:/var/lib/registry --name registry registry:2 &nbsp; &nbsp; &nbsp;# set -v param for storage images in path&nbsp;/data/Iaas/Docker/Volumes/Registry<br />
+	[root@oscontroller docker]# docker stop registry<br />
+	[root@oscontroller ~]# docker ps</span><br />
+	<span style="font-size:12px">CONTAINER ID &nbsp; &nbsp; &nbsp; &nbsp;IMAGE &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; COMMAND &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;CREATED &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; STATUS &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;PORTS &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;NAMES<br />
+	72f90844b386 &nbsp; &nbsp; &nbsp; &nbsp;registry:2 &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;&quot;/entrypoint.sh /etc/&quot; &nbsp; 53 seconds ago &nbsp; &nbsp; &nbsp;Up 52 seconds &nbsp; &nbsp; &nbsp; 0.0.0.0:4000-&gt;5000/tcp &nbsp; registry</span><br />
+	&nbsp;</p>
+
+	<p>&nbsp;</p>
+
+	<p>&nbsp;</p>
+
+	<p><strong><span style="font-size:18px">4. modify the configuration files of kolla</span></strong></p>
+
+	<p><br />
+	<span style="font-size:18px">[root@oscontroller ~]# cp /usr/share/kolla/ansible/inventory/multinode /usr/share/kolla/ansible/inventory/multinode.bak<br />
+	[root@oscontroller ~]# vi /usr/share/kolla/ansible/inventory/multinode</span><br />
+	<span style="font-size:12px"># These initial groups are the only groups required to be modified. The<br />
+	# additional groups are for more control of the environment.<br />
+	[control]<br />
+	# These hostname must be resolvable from your deployment host<br />
+	<strong>oscontroller</strong></span></p>
+
+	<p><span style="font-size:12px"># The above can also be specified as follows:<br />
+	#control[01:03] &nbsp; &nbsp; ansible_ssh_user=kolla</span></p>
+
+	<p><span style="font-size:12px"># The network nodes are where your l3-agent and loadbalancers will run<br />
+	# This can be the same as a host in the control group<br />
+	[network]<br />
+	<strong>oscontroller</strong></span></p>
+
+	<p><span style="font-size:12px">[compute]<br />
+	<strong>osnova1<br />
+	osnova2</strong></span></p>
+
+	<p><span style="font-size:12px"># When compute nodes and control nodes use different interfaces,<br />
+	# you can specify &quot;api_interface&quot; and another interfaces like below:<br />
+	#compute01 neutron_external_interface=eth0 api_interface=em1 storage_interface=em1 tunnel_interface=em1</span></p>
+
+	<p><span style="font-size:12px">[storage]<br />
+	<strong>oscontroller</strong></span></p>
+
+	<p><span style="font-size:18px">[root@oscontroller ~]# cp /usr/share/kolla/etc_examples/kolla/* /etc/kolla<br />
+	[root@oscontroller ~]# kolla-genpwd&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;#The tool will populate all empty fields in the /etc/kolla/passwords.yml file using randomly generated values to secure the deployment.<br />
+	[root@oscontroller ~]# vi /etc/kolla/globals.yml</span><br />
+	<span style="font-size:12px">kolla_internal_vip_address: &quot;192.168.1.251&quot;<br />
+	network_interface: &quot;em1&quot;<br />
+	neutron_external_interface: &quot;em2&quot;<br />
+	docker_registry: &quot;192.168.1.61:4000&quot;<br />
+	kolla_install_type: &quot;source&quot;</span></p>
+
+	<p><span style="font-size:12px">#kolla_internal_vip_address: &quot;10.10.10.254&quot;<br />
+	#network_interface: &quot;eth0&quot;<br />
+	#neutron_external_interface: &quot;eth1&quot;</span><br />
+	<span style="font-size:18px">[root@oscontroller ~]# cat /etc/kolla/passwords.yml | grep database</span><br />
+	<span style="font-size:12px">cinder_database_password: sWluY2iHtHviFZdfx9CFA3rdeghaqow1fwuf14QR<br />
+	<strong>database_password: XI8EeKsOyhQaDYM2P6PK9nlyjbCjGEJwM1UuU9xy &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; # use this password you can login into mysql</strong><br />
+	glance_database_password: JubdRouJOTtNv0mIhSzgT9wRc3PuVEZFt9hkGCmX<br />
+	heat_database_password: JGZaVXnlLtA0QWjpOLM1qEmu13sFBF5b8vSbtFK0<br />
+	ironic_database_password: SumunjZPdSpZKcJYhZXjHHtMkR0Kp5Rg9aqD1ppv<br />
+	keystone_database_password: 0LZuaRargoiSiGKi5JamKL5qgOGSYptf7s5vjx9J<br />
+	magnum_database_password: O1RGvmCgnaYWnzcWxuSGBLLaRZyeF6FsKs7CRrga<br />
+	manila_database_password: 3oyHotlkVIFW8caIfWL5ciJt7yTgEk6GpxdWOCMf<br />
+	mistral_database_password: vnvT7HHjbOFFg6EaybWlslQA1AuVwDlss52kXGKY<br />
+	murano_database_password: VX7Nmmn5RVyAkl5gdaUOI8fO5u5L0VrP26XoptYA<br />
+	neutron_database_password: sFqiRFBENofc50leb9jWAPLkrKFn2fnfYeeQ2T8T<br />
+	nova_api_database_password: t2jkrGzeIZ5s3UCxZIeTvZJeIeHsBjaSIhFADDqa<br />
+	nova_database_password: ZZ5J8LjxoRVD0aRH1xyOd07E9d6jTo792SN1DDKX</span><br />
+	&nbsp;</p>
+
+	<p>&nbsp;</p>
+
+	<p><strong><span style="font-size:18px">5.&nbsp;Building Container Images</span></strong></p>
+
+	<p><span style="font-size:18px">[root@oscontroller ~]# kolla-build --base centos --type source --registry 192.168.1.61:4000 --push &nbsp; &nbsp; &nbsp; &nbsp;&nbsp; &nbsp; &nbsp; # this may spend one or two hour</span><br />
+	<span style="font-size:12px">INFO:kolla.cmd.build:Found the docker image folder at /usr/share/kolla/docker<br />
+	INFO:kolla.cmd.build:base:Building<br />
+	INFO:kolla.cmd.build:base:Step 1 : FROM centos:latest<br />
+	INFO:kolla.cmd.build:base: ---&gt; 980e0e4c79ec<br />
+	INFO:kolla.cmd.build:base:Step 2 : MAINTAINER Kolla Project (https://launchpad.net/kolla)<br />
+	INFO:kolla.cmd.build:base: ---&gt; Using cache<br />
+	INFO:kolla.cmd.build:base: ---&gt; 7da41b625814<br />
+	INFO:kolla.cmd.build:base:Step 3 : LABEL kolla_version &quot;2.0.3&quot;<br />
+	INFO:kolla.cmd.build:base: ---&gt; Using cache<br />
+	INFO:kolla.cmd.build:base: ---&gt; 53059b0adec1<br />
+	INFO:kolla.cmd.build:base:Step 4 : ENV KOLLA_BASE_DISTRO centos<br />
+	INFO:kolla.cmd.build:base: ---&gt; Using cache<br />
+	INFO:kolla.cmd.build:base: ---&gt; 214bda1795ab<br />
+	INFO:kolla.cmd.build:base:Step 5 : ENV KOLLA_INSTALL_TYPE source<br />
+	INFO:kolla.cmd.build:base: ---&gt; Using cache<br />
+	INFO:kolla.cmd.build:base: ---&gt; fa008b8b4460<br />
+	INFO:kolla.cmd.build:base:Step 6 : ENV KOLLA_INSTALL_METATYPE mixed<br />
+	INFO:kolla.cmd.build:base: ---&gt; Using cache<br />
+	INFO:kolla.cmd.build:base: ---&gt; 6ccb756d9fa3<br />
+	INFO:kolla.cmd.build:base:Step 7 : COPY kolla_bashrc /tmp/<br />
+	INFO:kolla.cmd.build:base: ---&gt; Using cache<br />
+	INFO:kolla.cmd.build:base: ---&gt; d7aead56fdd8<br />
+	.........................<br />
+	.........................<br />
+	INFO:kolla.cmd.build:mongodb:Total download size: 54 M<br />
+	INFO:kolla.cmd.build:mongodb:Installed size: 165 M<br />
+	INFO:kolla.cmd.build:mongodb:Downloading packages:<br />
+	INFO:kolla.cmd.build:mongodb:http://mirror.centos.org/centos/7/cloud/x86_64/openstack-mitaka/common/mongodb-2.6.11-1.el7.x86_64.rpm: [Errno -1] Package does not match intended download. Suggestion: run yum --enablerepo=centos-openstack-mitaka clean metadata<br />
+	INFO:kolla.cmd.build:mongodb:Trying other mirror.<br />
+	INFO:kolla.cmd.build:mongodb:<br />
+	INFO:kolla.cmd.build:mongodb:http://mirror.centos.org/centos/7/cloud/x86_64/openstack-mitaka/common/mongodb-server-2.6.11-1.el7.x86_64.rpm: [Errno -1] Package does not match intended download. Suggestion: run yum --enablerepo=centos-openstack-mitaka clean metadata<br />
+	INFO:kolla.cmd.build:mongodb:Trying other mirror.<br />
+	INFO:kolla.cmd.build:mongodb:<br />
+	INFO:kolla.cmd.build:mongodb:<br />
+	INFO:kolla.cmd.build:mongodb:Error downloading packages:<br />
+	INFO:kolla.cmd.build:mongodb: &nbsp;mongodb-server-2.6.11-1.el7.x86_64: [Errno 256] No more mirrors to try.<br />
+	INFO:kolla.cmd.build:mongodb: &nbsp;mongodb-2.6.11-1.el7.x86_64: [Errno 256] No more mirrors to try.<br />
+	INFO:kolla.cmd.build:mongodb:<br />
+	.........................<br />
+	.........................<br />
+	INFO:kolla.cmd.build:nova-consoleauth<br />
+	INFO:kolla.cmd.build:designate-base<br />
+	INFO:kolla.cmd.build:neutron-dhcp-agent<br />
+	INFO:kolla.cmd.build:neutron-base<br />
+	INFO:kolla.cmd.build:designate-mdns<br />
+	INFO:kolla.cmd.build:ceilometer-notification<br />
+	INFO:kolla.cmd.build:ironic-inspector<br />
+	INFO:kolla.cmd.build:ironic-conductor<br />
+	INFO:kolla.cmd.build:nova-scheduler<br />
+	INFO:kolla.cmd.build:manila-base<br />
+	INFO:kolla.cmd.build:manila-share<br />
+	INFO:kolla.cmd.build:ceph-osd<br />
+	INFO:kolla.cmd.build:mariadb<br />
+	INFO:kolla.cmd.build:swift-account<br />
+	INFO:kolla.cmd.build:nova-compute<br />
+	INFO:kolla.cmd.build:neutron-metadata-agent<br />
+	INFO:kolla.cmd.build:nova-compute-ironic<br />
+	INFO:kolla.cmd.build:glance-base<br />
+	INFO:kolla.cmd.build:ironic-pxe<br />
+	INFO:kolla.cmd.build:gnocchi-statsd<br />
+	INFO:kolla.cmd.build:trove-conductor<br />
+	({}, {&#39;aodh-expirer&#39;: &#39;built&#39;, &#39;nova-api&#39;: &#39;built&#39;, &#39;cinder-base&#39;: &#39;built&#39;, &#39;swift-container&#39;: &#39;built&#39;, &#39;designate-api&#39;: &#39;built&#39;, &#39;kolla-toolbox&#39;: &#39;built&#39;, &#39;heat-engine&#39;: &#39;built&#39;, &#39;gnocchi-base&#39;: &#39;built&#39;, &#39;openvswitch-vswitchd&#39;: &#39;built&#39;, &#39;nova-network&#39;: &#39;built&#39;, &#39;trove-base&#39;: &#39;built&#39;, &#39;heat-api-cfn&#39;: &#39;built&#39;, &#39;aodh-base&#39;: &#39;built&#39;, &#39;murano-engine&#39;: &#39;built&#39;, &#39;neutron-server&#39;: &#39;built&#39;, &#39;magnum-base&#39;: &#39;built&#39;, &#39;magnum-conductor&#39;: &#39;built&#39;, &#39;murano-api&#39;: &#39;built&#39;, &#39;mistral-executor&#39;: &#39;built&#39;, &#39;mesos-dns&#39;: &#39;built&#39;, &#39;nova-spicehtml5proxy&#39;: &#39;built&#39;, &#39;aodh-api&#39;: &#39;built&#39;, &#39;nova-libvirt&#39;: &#39;built&#39;, &#39;cinder-api&#39;: &#39;built&#39;, &#39;rabbitmq&#39;: &#39;built&#39;, &#39;manila-api&#39;: &#39;built&#39;, &#39;nova-base&#39;: &#39;built&#39;, &#39;zookeeper&#39;: &#39;built&#39;, &#39;kibana&#39;: &#39;built&#39;, &#39;cron&#39;: &#39;built&#39;, &#39;swift-proxy-server&#39;: &#39;built&#39;, &#39;aodh-evaluator&#39;: &#39;built&#39;, &#39;tempest&#39;: &#39;built&#39;, &#39;trove-guestagent&#39;: &#39;built&#39;, &#39;neutron-linuxbridge-agent&#39;: &#39;built&#39;, &#39;nova-ssh&#39;: &#39;built&#39;, &#39;magnum-api&#39;: &#39;built&#39;, &#39;keepalived&#39;: &#39;built&#39;, &#39;openstack-base&#39;: &#39;built&#39;, &#39;keystone&#39;: &#39;built&#39;, &#39;mongodb&#39;: &#39;built&#39;, &#39;ceph-mon&#39;: &#39;built&#39;, &#39;memcached&#39;: &#39;built&#39;, &#39;mesos-slave&#39;: &#39;built&#39;, &#39;heka&#39;: &#39;built&#39;, &#39;base&#39;: &#39;built&#39;, &#39;haproxy&#39;: &#39;built&#39;, &#39;ceilometer-collector&#39;: &#39;built&#39;, &#39;glance-api&#39;: &#39;built&#39;, &#39;swift-base&#39;: &#39;built&#39;, &#39;elasticsearch&#39;: &#39;built&#39;, &#39;horizon&#39;: &#39;built&#39;, &#39;cinder-scheduler&#39;: &#39;built&#39;, &#39;designate-sink&#39;: &#39;built&#39;, &#39;murano-base&#39;: &#39;built&#39;, &#39;dind&#39;: &#39;built&#39;, &#39;trove-api&#39;: &#39;built&#39;, &#39;designate-poolmanager&#39;: &#39;built&#39;, &#39;neutron-openvswitch-agent&#39;: &#39;built&#39;, &#39;ceilometer-compute&#39;: &#39;built&#39;, &#39;manila-scheduler&#39;: &#39;built&#39;, &#39;mesos-base&#39;: &#39;built&#39;, &#39;ceilometer-central&#39;: &#39;built&#39;, &#39;nova-novncproxy&#39;: &#39;built&#39;, &#39;mesos-master&#39;: &#39;built&#39;, &#39;designate-backend-bind9&#39;: &#39;built&#39;, &#39;gnocchi-api&#39;: &#39;built&#39;, &#39;ceilometer-base&#39;: &#39;built&#39;, &#39;heat-api&#39;: &#39;built&#39;, &#39;aodh-notifier&#39;: &#39;built&#39;, &#39;cinder-backup&#39;: &#39;built&#39;, &#39;nova-conductor&#39;: &#39;built&#39;, &#39;heat-base&#39;: &#39;built&#39;, &#39;designate-central&#39;: &#39;built&#39;, &#39;neutron-l3-agent&#39;: &#39;built&#39;, &#39;ironic-api&#39;: &#39;built&#39;, &#39;mistral-base&#39;: &#39;built&#39;, &#39;mistral-api&#39;: &#39;built&#39;, &#39;cinder-rpcbind&#39;: &#39;built&#39;, &#39;swift-object&#39;: &#39;built&#39;, &#39;openvswitch-base&#39;: &#39;built&#39;, &#39;ceph-base&#39;: &#39;built&#39;, &#39;cinder-volume&#39;: &#39;built&#39;, &#39;ceilometer-api&#39;: &#39;built&#39;, &#39;trove-taskmanager&#39;: &#39;built&#39;, &#39;swift-rsyncd&#39;: &#39;built&#39;, &#39;aodh-listener&#39;: &#39;built&#39;, &#39;glance-registry&#39;: &#39;built&#39;, &#39;mesosphere-base&#39;: &#39;built&#39;, &#39;openvswitch-db-server&#39;: &#39;built&#39;, &#39;ceph-rgw&#39;: &#39;built&#39;, &#39;chronos&#39;: &#39;built&#39;, &#39;marathon&#39;: &#39;built&#39;, &#39;ironic-base&#39;: &#39;built&#39;, &#39;mistral-engine&#39;: &#39;built&#39;, &#39;zaqar&#39;: &#39;built&#39;, &#39;nova-consoleauth&#39;: &#39;built&#39;, &#39;designate-base&#39;: &#39;built&#39;, &#39;neutron-dhcp-agent&#39;: &#39;built&#39;, &#39;neutron-base&#39;: &#39;built&#39;, &#39;designate-mdns&#39;: &#39;built&#39;, &#39;ceilometer-notification&#39;: &#39;built&#39;, &#39;ironic-inspector&#39;: &#39;built&#39;, &#39;ironic-conductor&#39;: &#39;built&#39;, &#39;nova-scheduler&#39;: &#39;built&#39;, &#39;manila-base&#39;: &#39;built&#39;, &#39;manila-share&#39;: &#39;built&#39;, &#39;ceph-osd&#39;: &#39;built&#39;, &#39;mariadb&#39;: &#39;built&#39;, &#39;swift-account&#39;: &#39;built&#39;, &#39;nova-compute&#39;: &#39;built&#39;, &#39;neutron-metadata-agent&#39;: &#39;built&#39;, &#39;nova-compute-ironic&#39;: &#39;built&#39;, &#39;glance-base&#39;: &#39;built&#39;, &#39;ironic-pxe&#39;: &#39;built&#39;, &#39;gnocchi-statsd&#39;: &#39;built&#39;, &#39;trove-conductor&#39;: &#39;built&#39;}, {})</span><br />
+	&nbsp;</p>
+
+	<p><span style="font-size:18px">if you are lucky, you&#39;ll see the state of all images is <strong>built</strong>, if you see some images is error or parent_error， you &nbsp;must rebuild that one.</span></p>
+
+	<p><span style="font-size:18px">forexample:</span></p>
+
+	<p><span style="font-size:18px">[root@oscontroller ~]#&nbsp;kolla-build --base centos --type source --registry 192.168.1.61:4000 --push ceph-base</span></p>
+
+	<p><span style="font-size:18px">if it timeout, you can modify the&nbsp;Dockerfile.j2, eg:</span></p>
+
+	<p><span style="font-size:12px">[root@oscontroller docker]# vi /usr/share/kolla/docker/ceph/ceph-base/Dockerfile.j2<br />
+	FROM {{ namespace }}/{{ image_prefix }}base:{{ tag }}<br />
+	MAINTAINER {{ maintainer }}</span></p>
+
+	<p><span style="font-size:12px">{% if base_distro in [&#39;centos&#39;, &#39;fedora&#39;, &#39;oraclelinux&#39;, &#39;rhel&#39;] %}</span></p>
+
+	<p><strong><span style="font-size:12px">RUN yum install centos-release-openstack-mitaka.noarch -y<br />
+	RUN sed -i &#39;s/mirror.centos.org/mirrors.aliyun.com/g&#39; /etc/yum.repos.d/CentOS-OpenStack-mitaka.repo &nbsp; &nbsp; &nbsp; # in china, maybe you need this line</span></strong></p>
+
+	<p><span style="font-size:12px">RUN yum -y install ceph<br />
+	RUN yum -y install ceph-radosgw<br />
+	RUN yum -y install parted \<br />
+	&nbsp; &nbsp; &nbsp; &nbsp; hdparm \<br />
+	&nbsp; &nbsp; &nbsp; &nbsp; btrfs-progs \<br />
+	&nbsp; &nbsp; &amp;&amp; yum clean all<br />
+	#RUN rpm -ivh http://ftp.riken.jp/Linux/centos/7/storage/x86_64/ceph-hammer/ceph-0.94.5-1.el7.x86_64.rpm</span><br />
+	&nbsp;</p>
+
+	<p>&nbsp;</p>
+
+	<p><strong><span style="font-size:18px">6. Deploy Kolla</span></strong></p>
+
+	<p><strong><span style="font-size:18px">6.1 precheck and verify</span></strong></p>
+
+	<p><span style="font-size:18px">[root@oscontroller ~]# kolla-ansible prechecks -i /usr/share/kolla/ansible/inventory/multinode</span></p>
+
+	<p><span style="font-size:12px">Pre-deployment checking : ansible-playbook -i /usr/share/kolla/ansible/inventory/multinode -e @/etc/kolla/globals.yml -e @/etc/kolla/passwords.yml -e CONFIG_DIR=/etc/kolla &nbsp;/usr/share/kolla/ansible/prechecks.yml</span></p>
+
+	<p><span style="font-size:12px">PLAY [all] ********************************************************************</span></p>
+
+	<p><span style="font-size:12px">GATHERING FACTS ***************************************************************<br />
+	ok: [oscontroller]<br />
+	ok: [osnova2]<br />
+	ok: [osnova1]<br />
+	...........<br />
+	...........<br />
+	TASK: [prechecks | Checking that libvirt is not running] **********************<br />
+	skipping: [oscontroller]<br />
+	ok: [osnova1]<br />
+	ok: [osnova2]</span></p>
+
+	<p><span style="font-size:12px">TASK: [prechecks | Checking Docker version] ***********************************<br />
+	ok: [oscontroller]<br />
+	ok: [osnova2]<br />
+	ok: [osnova1]</span></p>
+
+	<p><span style="font-size:12px">TASK: [prechecks | Checking if &#39;MountFlags&#39; for docker service is set to &#39;shared&#39;] ***<br />
+	skipping: [osnova1]<br />
+	skipping: [osnova2]<br />
+	ok: [oscontroller]</span></p>
+
+	<p><span style="font-size:12px">TASK: [prechecks | Checking if &#39;/run&#39; mount flag is set to &#39;shared&#39;] **********<br />
+	skipping: [osnova1]<br />
+	skipping: [osnova2]<br />
+	skipping: [oscontroller]</span></p>
+
+	<p><span style="font-size:12px">TASK: [prechecks | Checking empty passwords in passwords.yml. Run kolla-genpwd if this task fails] ***<br />
+	ok: [osnova2 -&gt; 127.0.0.1]<br />
+	ok: [oscontroller -&gt; 127.0.0.1]<br />
+	ok: [osnova1 -&gt; 127.0.0.1]</span></p>
+
+	<p><span style="font-size:12px">TASK: [prechecks | Checking docker-py version] ********************************<br />
+	ok: [oscontroller]<br />
+	ok: [osnova1]<br />
+	ok: [osnova2]</span></p>
+
+	<p><span style="font-size:12px">TASK: [prechecks | Checking Ansible version] **********************************<br />
+	ok: [osnova1 -&gt; 127.0.0.1]<br />
+	ok: [osnova2 -&gt; 127.0.0.1]<br />
+	ok: [oscontroller -&gt; 127.0.0.1]</span></p>
+
+	<p><span style="font-size:12px">PLAY RECAP ********************************************************************<br />
+	<strong>osnova1 &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;: ok=8 &nbsp; &nbsp;changed=0 &nbsp; &nbsp;unreachable=0 &nbsp; &nbsp;failed=0<br />
+	osnova2 &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;: ok=8 &nbsp; &nbsp;changed=0 &nbsp; &nbsp;unreachable=0 &nbsp; &nbsp;failed=0<br />
+	oscontroller &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; : ok=64 &nbsp; changed=0 &nbsp; &nbsp;unreachable=0 &nbsp; &nbsp;failed=0</strong></span></p>
+
+	<p>you should see all nodes is ok, none nodes is failed</p>
+
+	<p><strong><span style="font-size:18px">6.2&nbsp;Verify that all required images with appropriate tags are available</span></strong></p>
+
+	<p><span style="font-size:18px">[root@oscontroller ~]# kolla-ansible pull -i /usr/share/kolla/ansible/inventory/multinode</span></p>
+
+	<p><span style="font-size:12px">Pulling Docker images : ansible-playbook -i /usr/share/kolla/ansible/inventory/multinode -e @/etc/kolla/globals.yml -e @/etc/kolla/passwords.yml -e CONFIG_DIR=/etc/kolla &nbsp;-e action=pull /usr/share/kolla/ansible/site.yml</span></p>
+
+	<p><span style="font-size:12px">PLAY [ceph-mon;ceph-osd;ceph-rgw] *********************************************</span></p>
+
+	<p><span style="font-size:12px">GATHERING FACTS ***************************************************************<br />
+	ok: [oscontroller]</span></p>
+
+	<p><span style="font-size:12px">TASK: [common | Pulling kolla-toolbox image] **********************************<br />
+	skipping: [oscontroller]</span></p>
+
+	<p><span style="font-size:12px">TASK: [common | Pulling heka image] *******************************************<br />
+	skipping: [oscontroller]</span></p>
+
+	<p><span style="font-size:12px">TASK: [common | Pulling cron image] *******************************************<br />
+	skipping: [oscontroller]</span></p>
+
+	<p><span style="font-size:12px">TASK: [common | Registering common role has run] ******************************<br />
+	skipping: [oscontroller]</span></p>
+
+	<p><span style="font-size:12px">TASK: [ceph | Pulling ceph-mon image] *****************************************<br />
+	skipping: [oscontroller]</span></p>
+
+	<p><span style="font-size:12px">TASK: [ceph | Pulling ceph-osd image] *****************************************<br />
+	skipping: [oscontroller]</span></p>
+
+	<p><span style="font-size:12px">TASK: [ceph | Pulling ceph-rgw image] *****************************************<br />
+	skipping: [oscontroller]</span></p>
+
+	<p><span style="font-size:12px">PLAY [elasticsearch] **********************************************************</span></p>
+
+	<p><span style="font-size:12px">GATHERING FACTS ***************************************************************<br />
+	ok: [oscontroller]<br />
+	.....................<br />
+	.....................<br />
+	.....................<br />
+	PLAY [mongodb] ****************************************************************</span></p>
+
+	<p><span style="font-size:12px">GATHERING FACTS ***************************************************************<br />
+	ok: [oscontroller]</span></p>
+
+	<p><span style="font-size:12px">TASK: [common | Pulling kolla-toolbox image] **********************************<br />
+	skipping: [oscontroller]</span></p>
+
+	<p><span style="font-size:12px">TASK: [common | Pulling heka image] *******************************************<br />
+	skipping: [oscontroller]</span></p>
+
+	<p><span style="font-size:12px">TASK: [common | Pulling cron image] *******************************************<br />
+	skipping: [oscontroller]</span></p>
+
+	<p><span style="font-size:12px">TASK: [common | Registering common role has run] ******************************<br />
+	skipping: [oscontroller]</span></p>
+
+	<p><span style="font-size:12px">TASK: [mongodb | Pulling mongodb image] ***************************************<br />
+	skipping: [oscontroller]</span></p>
+
+	<p><span style="font-size:12px">PLAY [manila-api;manila-share;manila-scheduler;rabbitmq;memcached] ************</span></p>
+
+	<p><span style="font-size:12px">GATHERING FACTS ***************************************************************<br />
+	ok: [oscontroller]</span></p>
+
+	<p><span style="font-size:12px">TASK: [common | Pulling kolla-toolbox image] **********************************<br />
+	skipping: [oscontroller]</span></p>
+
+	<p><span style="font-size:12px">TASK: [common | Pulling heka image] *******************************************<br />
+	skipping: [oscontroller]</span></p>
+
+	<p><span style="font-size:12px">TASK: [common | Pulling cron image] *******************************************<br />
+	skipping: [oscontroller]</span></p>
+
+	<p><span style="font-size:12px">TASK: [common | Registering common role has run] ******************************<br />
+	skipping: [oscontroller]</span></p>
+
+	<p><span style="font-size:12px">TASK: [manila | Pulling manila-api image] *************************************<br />
+	skipping: [oscontroller]</span></p>
+
+	<p><span style="font-size:12px">TASK: [manila | Pulling manila-scheduler image] *******************************<br />
+	skipping: [oscontroller]</span></p>
+
+	<p><span style="font-size:12px">TASK: [manila | Pulling manila-share image] ***********************************<br />
+	skipping: [oscontroller]</span></p>
+
+	<p><strong><span style="font-size:12px">PLAY RECAP ********************************************************************<br />
+	osnova1 &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;: ok=12 &nbsp; changed=9 &nbsp; &nbsp;unreachable=0 &nbsp; &nbsp;failed=0<br />
+	osnova2 &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;: ok=12 &nbsp; changed=9 &nbsp; &nbsp;unreachable=0 &nbsp; &nbsp;failed=0<br />
+	oscontroller &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; : ok=49 &nbsp; changed=0 &nbsp; &nbsp;unreachable=0 &nbsp; &nbsp;failed=0</span></strong><br />
+	&nbsp;</p>
+
+	<p>you should see all nodes is ok, none nodes is failed</p>
+
+	<p>&nbsp;</p>
+
+	<p><strong><span style="font-size:18px">6.3 begin to deploy</span></strong></p>
+
+	<p><span style="font-size:18px">[root@oscontroller ~]# kolla-ansible deploy -i /usr/share/kolla/ansible/inventory/multinode &nbsp; &nbsp; &nbsp; # this may spend one hour</span></p>
+
+	<p><span style="font-size:12px">Deploying Playbooks : ansible-playbook -i /usr/share/kolla/ansible/inventory/multinode -e @/etc/kolla/globals.yml -e @/etc/kolla/passwords.yml -e CONFIG_DIR=/etc/kolla &nbsp;-e action=deploy /usr/share/kolla/ansible/site.yml</span></p>
+
+	<p><span style="font-size:12px">PLAY [ceph-mon;ceph-osd;ceph-rgw] *********************************************</span></p>
+
+	<p><span style="font-size:12px">GATHERING FACTS ***************************************************************<br />
+	ok: [oscontroller]</span></p>
+
+	<p><span style="font-size:12px">TASK: [common | Ensuring config directories exist] ****************************<br />
+	skipping: [oscontroller] =&gt; (item=heka)<br />
+	skipping: [oscontroller] =&gt; (item=cron)<br />
+	skipping: [oscontroller] =&gt; (item=cron/logrotate)</span></p>
+
+	<p><span style="font-size:12px">TASK: [common | Copying over config.json files for services] ******************<br />
+	skipping: [oscontroller] =&gt; (item=heka)<br />
+	skipping: [oscontroller] =&gt; (item=cron)</span></p>
+
+	<p><span style="font-size:12px">TASK: [common | Copying over heka config files] *******************************<br />
+	skipping: [oscontroller] =&gt; (item={&#39;enabled&#39;: u&#39;no&#39;, &#39;name&#39;: &#39;elasticsearch&#39;})<br />
+	skipping: [oscontroller] =&gt; (item={&#39;enabled&#39;: &#39;yes&#39;, &#39;name&#39;: &#39;global&#39;})<br />
+	skipping: [oscontroller] =&gt; (item={&#39;enabled&#39;: u&#39;yes&#39;, &#39;name&#39;: &#39;haproxy&#39;})<br />
+	skipping: [oscontroller] =&gt; (item={&#39;enabled&#39;: u&#39;yes&#39;, &#39;name&#39;: &#39;horizon&#39;})<br />
+	skipping: [oscontroller] =&gt; (item={&#39;enabled&#39;: u&#39;yes&#39;, &#39;name&#39;: &#39;keepalived&#39;})<br />
+	skipping: [oscontroller] =&gt; (item={&#39;enabled&#39;: u&#39;yes&#39;, &#39;name&#39;: &#39;keystone&#39;})<br />
+	skipping: [oscontroller] =&gt; (item={&#39;enabled&#39;: u&#39;yes&#39;, &#39;name&#39;: &#39;mariadb&#39;})<br />
+	skipping: [oscontroller] =&gt; (item={&#39;enabled&#39;: &#39;yes&#39;, &#39;name&#39;: &#39;openstack&#39;})<br />
+	skipping: [oscontroller] =&gt; (item={&#39;enabled&#39;: u&#39;yes&#39;, &#39;name&#39;: &#39;rabbitmq&#39;})<br />
+	skipping: [oscontroller] =&gt; (item={&#39;src&#39;: &#39;swift&#39;, &#39;enabled&#39;: u&#39;no&#39;, &#39;name&#39;: &#39;swift-account-auditor&#39;})<br />
+	skipping: [oscontroller] =&gt; (item={&#39;src&#39;: &#39;swift&#39;, &#39;enabled&#39;: u&#39;no&#39;, &#39;name&#39;: &#39;swift-account-reaper&#39;})<br />
+	skipping: [oscontroller] =&gt; (item={&#39;src&#39;: &#39;swift&#39;, &#39;enabled&#39;: u&#39;no&#39;, &#39;name&#39;: &#39;swift-account-replicator&#39;})<br />
+	skipping: [oscontroller] =&gt; (item={&#39;src&#39;: &#39;swift&#39;, &#39;enabled&#39;: u&#39;no&#39;, &#39;name&#39;: &#39;swift-account-server&#39;})<br />
+	skipping: [oscontroller] =&gt; (item={&#39;src&#39;: &#39;swift&#39;, &#39;enabled&#39;: u&#39;no&#39;, &#39;name&#39;: &#39;swift-container-auditor&#39;})<br />
+	skipping: [oscontroller] =&gt; (item={&#39;src&#39;: &#39;swift&#39;, &#39;enabled&#39;: u&#39;no&#39;, &#39;name&#39;: &#39;swift-container-replicator&#39;})<br />
+	skipping: [oscontroller] =&gt; (item={&#39;src&#39;: &#39;swift&#39;, &#39;enabled&#39;: u&#39;no&#39;, &#39;name&#39;: &#39;swift-container-server&#39;})<br />
+	skipping: [oscontroller] =&gt; (item={&#39;src&#39;: &#39;swift&#39;, &#39;enabled&#39;: u&#39;no&#39;, &#39;name&#39;: &#39;swift-container-updater&#39;})<br />
+	skipping: [oscontroller] =&gt; (item={&#39;src&#39;: &#39;swift&#39;, &#39;enabled&#39;: u&#39;no&#39;, &#39;name&#39;: &#39;swift-object-auditor&#39;})<br />
+	skipping: [oscontroller] =&gt; (item={&#39;src&#39;: &#39;swift&#39;, &#39;enabled&#39;: u&#39;no&#39;, &#39;name&#39;: &#39;swift-object-expirer&#39;})<br />
+	skipping: [oscontroller] =&gt; (item={&#39;src&#39;: &#39;swift&#39;, &#39;enabled&#39;: u&#39;no&#39;, &#39;name&#39;: &#39;swift-object-replicator&#39;})<br />
+	skipping: [oscontroller] =&gt; (item={&#39;src&#39;: &#39;swift&#39;, &#39;enabled&#39;: u&#39;no&#39;, &#39;name&#39;: &#39;swift-object-server&#39;})<br />
+	skipping: [oscontroller] =&gt; (item={&#39;src&#39;: &#39;swift&#39;, &#39;enabled&#39;: u&#39;no&#39;, &#39;name&#39;: &#39;swift-object-updater&#39;})<br />
+	skipping: [oscontroller] =&gt; (item={&#39;src&#39;: &#39;swift&#39;, &#39;enabled&#39;: u&#39;no&#39;, &#39;name&#39;: &#39;swift-proxy-server&#39;})<br />
+	skipping: [oscontroller] =&gt; (item={&#39;src&#39;: &#39;swift&#39;, &#39;enabled&#39;: u&#39;no&#39;, &#39;name&#39;: &#39;swift-rsyncd&#39;})</span></p>
+
+	<p><span style="font-size:12px">TASK: [common | Copying over cron logrotate config files] *********************<br />
+	skipping: [oscontroller] =&gt; (item=ansible)<br />
+	skipping: [oscontroller] =&gt; (item=cinder)<br />
+	skipping: [oscontroller] =&gt; (item=glance)<br />
+	skipping: [oscontroller] =&gt; (item=global)<br />
+	skipping: [oscontroller] =&gt; (item=haproxy)<br />
+	skipping: [oscontroller] =&gt; (item=heat)<br />
+	skipping: [oscontroller] =&gt; (item=keepalived)<br />
+	skipping: [oscontroller] =&gt; (item=keystone)<br />
+	skipping: [oscontroller] =&gt; (item=magnum)<br />
+	skipping: [oscontroller] =&gt; (item=manila)<br />
+	skipping: [oscontroller] =&gt; (item=mariadb)<br />
+	skipping: [oscontroller] =&gt; (item=mistral)<br />
+	skipping: [oscontroller] =&gt; (item=murano)<br />
+	skipping: [oscontroller] =&gt; (item=neutron)<br />
+	skipping: [oscontroller] =&gt; (item=nova)<br />
+	skipping: [oscontroller] =&gt; (item=rabbitmq)<br />
+	skipping: [oscontroller] =&gt; (item=swift)<br />
+	....................<br />
+	....................<br />
+	....................<br />
+	TASK: [common | Starting kolla-toolbox container] *****************************<br />
+	skipping: [oscontroller]</span></p>
+
+	<p><span style="font-size:12px">TASK: [common | Starting cron container] **************************************<br />
+	skipping: [oscontroller]</span></p>
+
+	<p><span style="font-size:12px">TASK: [common | Registering common role has run] ******************************<br />
+	skipping: [oscontroller]</span></p>
+
+	<p><span style="font-size:12px">TASK: [manila | Creating the Manila service and endpoint] *********************<br />
+	skipping: [oscontroller] =&gt; (item={&#39;interface&#39;: &#39;admin&#39;, &#39;url&#39;: u&#39;http://192.168.1.251:8786/v1/%(tenant_id)s&#39;, &#39;service_type&#39;: &#39;share&#39;, &#39;service_name&#39;: &#39;manila&#39;})<br />
+	skipping: [oscontroller] =&gt; (item={&#39;interface&#39;: &#39;internal&#39;, &#39;url&#39;: u&#39;http://192.168.1.251:8786/v1/%(tenant_id)s&#39;, &#39;service_type&#39;: &#39;share&#39;, &#39;service_name&#39;: &#39;manila&#39;})<br />
+	skipping: [oscontroller] =&gt; (item={&#39;interface&#39;: &#39;public&#39;, &#39;url&#39;: u&#39;http://192.168.1.251:8786/v1/%(tenant_id)s&#39;, &#39;service_type&#39;: &#39;share&#39;, &#39;service_name&#39;: &#39;manila&#39;})<br />
+	skipping: [oscontroller] =&gt; (item={&#39;interface&#39;: &#39;admin&#39;, &#39;url&#39;: u&#39;http://192.168.1.251:8786/v2/%(tenant_id)s&#39;, &#39;service_type&#39;: &#39;sharev2&#39;, &#39;service_name&#39;: &#39;manilav2&#39;})<br />
+	skipping: [oscontroller] =&gt; (item={&#39;interface&#39;: &#39;internal&#39;, &#39;url&#39;: u&#39;http://192.168.1.251:8786/v2/%(tenant_id)s&#39;, &#39;service_type&#39;: &#39;sharev2&#39;, &#39;service_name&#39;: &#39;manilav2&#39;})<br />
+	skipping: [oscontroller] =&gt; (item={&#39;interface&#39;: &#39;public&#39;, &#39;url&#39;: u&#39;http://192.168.1.251:8786/v2/%(tenant_id)s&#39;, &#39;service_type&#39;: &#39;sharev2&#39;, &#39;service_name&#39;: &#39;manilav2&#39;})</span></p>
+
+	<p><span style="font-size:12px">TASK: [manila | Creating the Manila project, user and role] *******************<br />
+	skipping: [oscontroller]</span></p>
+
+	<p><span style="font-size:12px">TASK: [manila | Ensuring config directories exist] ****************************<br />
+	skipping: [oscontroller] =&gt; (item=manila-api)<br />
+	skipping: [oscontroller] =&gt; (item=manila-scheduler)<br />
+	skipping: [oscontroller] =&gt; (item=manila-share)</span></p>
+
+	<p><span style="font-size:12px">TASK: [manila | Copying over config.json files for services] ******************<br />
+	skipping: [oscontroller] =&gt; (item=manila-api)<br />
+	skipping: [oscontroller] =&gt; (item=manila-scheduler)<br />
+	skipping: [oscontroller] =&gt; (item=manila-share)</span></p>
+
+	<p><span style="font-size:12px">TASK: [manila | Copying over manila.conf] *************************************<br />
+	skipping: [oscontroller] =&gt; (item=manila-api)<br />
+	skipping: [oscontroller] =&gt; (item=manila-scheduler)<br />
+	skipping: [oscontroller] =&gt; (item=manila-share)</span></p>
+
+	<p><span style="font-size:12px">TASK: [manila | Creating Manila database] *************************************<br />
+	skipping: [oscontroller]</span></p>
+
+	<p><span style="font-size:12px">TASK: [manila | Reading json from variable] ***********************************<br />
+	skipping: [oscontroller]</span></p>
+
+	<p><span style="font-size:12px">TASK: [manila | Creating Manila database user and setting permissions] ********<br />
+	skipping: [oscontroller]</span></p>
+
+	<p><span style="font-size:12px">TASK: [manila | Running Manila bootstrap container] ***************************<br />
+	skipping: [oscontroller]</span></p>
+
+	<p><span style="font-size:12px">TASK: [manila | Starting manila-api container] ********************************<br />
+	skipping: [oscontroller]</span></p>
+
+	<p><span style="font-size:12px">TASK: [manila | Starting manila-scheduler container] **************************<br />
+	skipping: [oscontroller]</span></p>
+
+	<p><span style="font-size:12px">TASK: [manila | Starting manila-share container] ******************************<br />
+	skipping: [oscontroller]</span></p>
+
+	<p><strong><span style="font-size:12px">PLAY RECAP ********************************************************************<br />
+	osnova1 &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;: ok=65 &nbsp; changed=43 &nbsp; unreachable=0 &nbsp; &nbsp;failed=0<br />
+	osnova2 &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;: ok=65 &nbsp; changed=43 &nbsp; unreachable=0 &nbsp; &nbsp;failed=0<br />
+	oscontroller &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; : ok=299 &nbsp;changed=110 &nbsp;unreachable=0 &nbsp; &nbsp;failed=0</span></strong><br />
+	&nbsp;</p>
+
+	<p><span style="font-size:18px">all nodes should be ok.</span></p>
+
+	<p><span style="font-size:18px">if you see some node is failed, you must deploy again, but before do that, you should execute:</span></p>
+
+	<p><span style="font-size:18px">[root@all &nbsp;~]# cd /data/kolla/tools/<br />
+	[root@all tools]# ./cleanup-containers<br />
+	[root@all tools]# ./cleanup-host</span></p>
+
+	<p>&nbsp;</p>
+
+	<p><strong><span style="font-size:18px">7. update</span></strong></p>
+
+	<p><span style="font-size:18px">sometime you neeed&nbsp;add or remove a computer node or controller node, you should modify /usr/share/kolla/ansible/inventory/multinode, then execute:</span></p>
+
+	<p><span style="font-size:18px">kolla-ansible upgrade -i /usr/share/kolla/ansible/inventory/multinode</span></p>
+
+	<p>&nbsp;</p>
+
+	<p><strong><span style="font-size:18px">8.1 visit&nbsp;horizon</span></strong></p>
+
+	<p><span style="font-size:18px">[root@oscontroller ~]# cat /etc/kolla/passwords.yml | grep keystone_admin_password</span></p>
+
+	<p><span style="font-size:12px">keystone_admin_password: ynRZeY85GzGd4Fa5VK7UBB0lNbpNUXrXawQBmJCO</span></p>
+
+	<p><span style="font-size:18px">now you can open http://192.168.1.61</span></p>
+
+	<p><span style="font-size:18px">login with:</span></p>
+
+	<p><span style="font-size:18px">domain: default&nbsp;&nbsp; &nbsp;username:admin&nbsp;&nbsp; &nbsp;pwd: ynRZeY85GzGd4Fa5VK7UBB0lNbpNUXrXawQBmJCO</span></p>
+
+	<p><strong><span style="font-size:18px">8.2&nbsp;create an openrc file</span></strong></p>
+
+	<p><span style="font-size:18px">[root@oscontroller ~]# kolla-ansible post-deploy</span></p>
+
+	<p><span style="font-size:18px">[root@oscontroller ~]# cat /etc/kolla/admin-openrc.sh</span><br />
+	<span style="font-size:12px">export OS_PROJECT_DOMAIN_ID=default<br />
+	export OS_USER_DOMAIN_ID=default<br />
+	export OS_PROJECT_NAME=admin<br />
+	export OS_TENANT_NAME=admin<br />
+	export OS_USERNAME=admin<br />
+	export OS_PASSWORD=ynRZeY85GzGd4Fa5VK7UBB0lNbpNUXrXawQBmJCO<br />
+	export OS_AUTH_URL=http://192.168.1.253:35357/v3<br />
+	export OS_IDENTITY_API_VERSION=3</span><br />
+	<span style="font-size:18px">[root@oscontroller ~]# source /etc/kolla/admin-openrc.sh</span></p>
+
+	<p>&nbsp;</p>
+
+	<p><strong><span style="font-size:18px">8.3 initialize network and a glance</span></strong></p>
+
+	<p><span style="font-size:18px">[root@oscontroller ~]# /data/Iaas/OpenStack/kolla/tools/init-runonce</span></p>
+
+	<p>&nbsp;</p>
+
+	<p><span style="font-size:18px">All finished. you can see the initalize network from&nbsp;http://192.168.1.61.</span></p>
+
+	<p>&nbsp;</p>
+
+	<p><span style="font-size:18px">Sometime, after you recreated your network, if the gateway of your network can not ping, you may need reboot some node. or assign interface to vm instances.</span></p>
+
+	<p>&nbsp;</p>
+
+	<p><span style="font-size:18px">enjoy yourself!</span></p>
+
+	<p>&nbsp;</p>
+
+	<p>&nbsp;</p>
+
+	<p>&nbsp;</p>
+
+	<p>&nbsp;</p>
+
+	<p style="text-align:right">&nbsp;</p>
+
 </body>
 </html>
