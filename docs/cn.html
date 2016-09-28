@@ -1,31 +1,31 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<title>The guide of installation kolla for openstack in docker</title>
+	<title>用kolla在容器里安装openstack的安装过程</title>
 </head>
 <body>
-	<h1 style="text-align: center;"><strong>Installation of kolla for openstack in docker</strong></h1>
+	<h1 style="text-align: center;"><strong>用kolla在容器里安装opensta/strong></h1>
 
-	<p><span style="font-size:18px">OpenStack is a cloud operating system that controls large pools of compute, storage, and networking resources throughout a datacenter, all managed through a dashboard that gives administrators control while empowering their users to provision resources through a web interface.<br />
-	Docker is the world&#39;s leading software containerization platform. Docker containers wrap a piece of software in a complete filesystem that contains everything needed to run: code, runtime, system tools, system libraries &ndash; anything that can be installed on a server.</span></p>
+	<p><span style="font-size:18px">OpenStack是一个开源的云计算管理平台项目，由几个主要的组件组合起来完成具体工作。OpenStack支持几乎所有类型的云环境，项目目标是提供实施简单、可大规模扩展、丰富、标准统一的云计算管理平台。OpenStack通过各种互补的服务提供了基础设施即服务（IaaS）的解决方案，每个服务提供API以进行集成。<br />
+	Docker 是一个开源的应用容器引擎，让开发者可以打包他们的应用以及依赖包到一个可移植的容器中，然后发布到任何流行的 Linux 机器上，也可以实现虚拟化。容器是完全使用沙箱机制，相互之间不会有任何接口。</span></p>
 
-	<p><span style="font-size:18px">what&#39;s kolla? Kolla&#39;s mission statement is:&nbsp;To provide production-ready containers and deployment tools for operating OpenStack clouds.</span></p>
+	<p><span style="font-size:18px">什么是kolla? Kolla可以把目前OpenStack项目用到的所有组件都容器化。</span></p>
 
-	<p><span style="font-size:18px">Some weeks ago, I deployed one private cloud for my company on three node. I ran into many problems, and resolve them all, it&#39;s not very easy for lack document. so I write a detail document to show my process of installation, maybe can help someone fix some issue.</span></p>
+	<p><span style="font-size:18px">前段时间，为了便于服务器的管理、隔离、安全等，我在生产环境下为公司搭建了个私有云。运行一切正常</span></p>
 
-	<p><span style="font-size:18px">This public doc is my note in develop environment, not production environment. I have ever redone&nbsp;some steps so maybe there are some id or output mistake.</span></p>
+	<p><span style="font-size:18px">这个公开的文档是我部署测试环境下的，不是正式环境的，因文档是后来整理的，难免有些错误出入，比如id 或输出等的不匹配.</span></p>
 
 	<p>&nbsp;</p>
 
-	<p><span style="font-size:18px"><strong>Phsical Node:</strong></span></p>
+	<p><span style="font-size:18px"><strong>所用物理节点:</strong></span></p>
 
 	<p><span style="font-size:18px">192.168.1.61&nbsp;&nbsp; &nbsp;oscontroller<br />
 	192.168.1.91&nbsp;&nbsp; &nbsp;osnova1<br />
 	192.168.1.92&nbsp;&nbsp; &nbsp;osnova2</span></p>
 
-	<p><span style="font-size:18px">firstly you must config the initialize environment on all&nbsp;node.</span></p>
+	<p><span style="font-size:18px">首先在所有物理节点配置初始环境</span></p>
 
-	<h1><strong><span style="font-size:18px">1.1 config host names</span></strong></h1>
+	<h1><strong><span style="font-size:18px">1.1 配置host names</span></strong></h1>
 
 	<p><span style="font-size:18px">vi /etc/hostname</span></p>
 
@@ -36,13 +36,13 @@
 	192.168.1.91 &nbsp; &nbsp; &nbsp; osnova1<br />
 	192.168.1.92 &nbsp; &nbsp; &nbsp; osnova2</span></p>
 
-	<h1><span style="font-size:18px"><strong>1.2 verify connection between your nodes.</strong><br />
+	<h1><span style="font-size:18px"><strong>1.2 验证所有节点是否相互连接.</strong><br />
 	ping oscontroller</span></h1>
 
 	<p><span style="font-size:18px">ping osnova1</span><br />
 	<span style="font-size:18px">ping osnova2</span></p>
 
-	<h1><strong><span style="font-size:18px">1.3 update you os, and install some softs</span></strong></h1>
+	<h1><strong><span style="font-size:18px">1.3 更新系统安装你常用的软件</span></strong></h1>
 
 	<p><span style="font-size:18px">yum update</span></p>
 
@@ -52,7 +52,7 @@
 
 	<p><span style="font-size:18px">yum install wget -y</span></p>
 
-	<p><strong><span style="font-size:18px">1.4 verify you cpu support VT</span></strong></p>
+	<p><strong><span style="font-size:18px">1.4 验证你的节点是否支持VT</span></strong></p>
 
 	<p>[root@oscontroller ~]# egrep -c &#39;(vmx|svm)&#39; /proc/cpuinfo<br />
 	2<br />
@@ -61,7 +61,7 @@
 	[root@osnova2 ~]# egrep -c &#39;(vmx|svm)&#39; /proc/cpuinfo<br />
 	4</p>
 
-	<h1><strong><span style="font-size:18px">1.5 config login without password between all nodes.</span></strong></h1>
+	<h1><strong><span style="font-size:18px">1.5 配置节点之间免登录.</span></strong></h1>
 
 	<p><span style="font-size:18px">[root@oscontroller ~]# ssh-keygen -t rsa -P &#39;&#39; -f ~/.ssh/id_rsa<br />
 	[root@osnova1 ~]# ssh-keygen -t rsa -P &#39;&#39; -f ~/.ssh/id_rsa<br />
@@ -80,7 +80,7 @@
 	[root@oscontroller .ssh]# scp authorized_keys root@osnova2:~/.ssh/authorized_keys</span></p>
 
 	<p><br />
-	<strong><span style="font-size:18px">1.6 config network</span></strong></p>
+	<strong><span style="font-size:18px">1.6 配置节点网络</span></strong></p>
 
 	<p><span style="font-size:18px">[root@oscontroller ~]# cat /etc/sysconfig/network-scripts/ifcfg-em1</span><br />
 	<span style="font-size:12px">TYPE=Ethernet<br />
@@ -102,7 +102,7 @@
 	IPV6_PEERDNS=yes<br />
 	IPV6_PEERROUTES=yes<br />
 	IPV6_PRIVACY=no</span><br />
-	<span style="font-size:18px">[root@oscontroller ~]# cat /etc/sysconfig/network-scripts/ifcfg-em2 &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;#this network can not be set ip, otherwise the instance can not be access.</span><br />
+	<span style="font-size:18px">[root@oscontroller ~]# cat /etc/sysconfig/network-scripts/ifcfg-em2 &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;#这个网卡是不能设置ip的, 否则创建的实例网络不通.</span><br />
 	<span style="font-size:12px">TYPE=Ethernet<br />
 	<strong>BOOTPROTO=none</strong><br />
 	DEFROUTE=yes<br />
@@ -130,7 +130,7 @@
 	IPV6_PEERDNS=yes<br />
 	IPV6_PEERROUTES=yes<br />
 	IPV6_PRIVACY=no</span><br />
-	<span style="font-size:18px">[root@osnova1&nbsp;~]# cat /etc/sysconfig/network-scripts/ifcfg-em2&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;#this network can not be set ip</span><br />
+	<span style="font-size:18px">[root@osnova1&nbsp;~]# cat /etc/sysconfig/network-scripts/ifcfg-em2&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;#不能设置ip</span><br />
 	<span style="font-size:12px">TYPE=Ethernet<br />
 	BOOTPROTO=none<br />
 	DEFROUTE=yes<br />
@@ -158,7 +158,7 @@
 	IPV6_PEERDNS=yes<br />
 	IPV6_PEERROUTES=yes<br />
 	IPV6_PRIVACY=no</span><br />
-	<span style="font-size:18px">[root@osnova2&nbsp;~]# cat /etc/sysconfig/network-scripts/ifcfg-em2&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;#this network can not be set ip</span><br />
+	<span style="font-size:18px">[root@osnova2&nbsp;~]# cat /etc/sysconfig/network-scripts/ifcfg-em2&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;#不能设置ip</span><br />
 	<span style="font-size:12px">TYPE=Ethernet<br />
 	BOOTPROTO=none<br />
 	DEFROUTE=yes<br />
@@ -169,7 +169,7 @@
 
 	<p>&nbsp;</p>
 
-	<p><strong><span style="font-size:18px">1.7 install dependency of kolla</span></strong></p>
+	<p><strong><span style="font-size:18px">1.7 安装kolla的依赖</span></strong></p>
 
 	<p><span style="font-size:18px">yum install python-pip -y<br />
 	pip install -U pip<br />
@@ -181,7 +181,7 @@
 	<span style="font-size:18px">yum install gcc gcc-c++ -y</span><br />
 	<span style="font-size:18px">&nbsp;</span></p>
 
-	<p><strong><span style="font-size:18px">1.8 config NTP</span></strong></p>
+	<p><strong><span style="font-size:18px">1.8 配置 NTP</span></strong></p>
 
 	<p>yum install ntp -y<br />
 	systemctl enable ntpd.service<br />
@@ -223,7 +223,7 @@
 	systemctl start chronyd.service<br />
 	chronyc sources</span></p>
 
-	<p><strong><span style="font-size:18px">1.9 config firwall</span></strong></p>
+	<p><strong><span style="font-size:18px">1.9 配置防火墙</span></strong></p>
 
 	<p>@oscontroller<br />
 	firewall-cmd --permanent --zone=public --add-port=80/tcp<br />
@@ -267,9 +267,9 @@
 	firewall-cmd --list-all<br />
 	systemctl restart firewalld</p>
 
-	<p><strong><span style="font-size:18px">1.10 config selinux</span></strong></p>
+	<p><strong><span style="font-size:18px">1.10 配置selinux</span></strong></p>
 
-	<p><span style="font-size:18px">getenforce&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;#set selinux=disable, otherwise the vm instances can not be access from external network<br />
+	<p><span style="font-size:18px">getenforce&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;#要设置selinux=disable, 否则创建的实例网络不通<br />
 	vi /etc/selinux/config</span><br />
 	<span style="font-size:12px">SELINUX=disabled</span></p>
 
@@ -277,13 +277,13 @@
 
 	<p>&nbsp;</p>
 
-	<p><strong><span style="font-size:18px">2. install kolla&nbsp;with source type</span></strong></p>
+	<p><strong><span style="font-size:18px">2. 源码安装kolla</span></strong></p>
 
 	<p><span style="font-size:18px">[root@oscontroller ~]# yum install git -y<br />
 	[root@oscontroller ~]# cd /data/Iaas/OpenStack/<br />
 	[root@oscontroller OpenStack]# git clone https://git.openstack.org/openstack/kolla<br />
 	[root@oscontroller OpenStack]# cd kolla/<br />
-	[root@oscontroller kolla]# git checkout stable/mitaka &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;# change branch, for now, I choose&nbsp;stable/mitaka for stable and less bug.</span><br />
+	[root@oscontroller kolla]# git checkout stable/mitaka &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;# 切换branch, 目前我选择更稳定bug更少的table/mitaka.</span><br />
 	<span style="font-size:12px">Branch stable/mitaka set up to track remote branch stable/mitaka from origin.<br />
 	Switched to a new branch &#39;stable/mitaka&#39;</span><br />
 	<span style="font-size:18px">[root@oscontroller kolla]# cd ..<br />
@@ -310,7 +310,7 @@
 
 	<p>&nbsp;</p>
 
-	<p><strong><span style="font-size:18px">3.1 install docker on all nodes</span></strong></p>
+	<p><strong><span style="font-size:18px">3.1 在所有节点安装docker</span></strong></p>
 
 	<p><span style="font-size:18px">[root@all ~]# curl -sSL https://get.docker.com/ | sh<br />
 	[root@all ~]# docker --version<br />
@@ -335,9 +335,9 @@
 	[root@all ~]# yum install python-docker-py -y&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;# or pip install -U docker-py</span><br />
 	&nbsp;</p>
 
-	<p><strong><span style="font-size:18px">3.2 start up private registry on oscontroller</span></strong></p>
+	<p><strong><span style="font-size:18px">3.2 在oscontroller启动私有仓库</span></strong></p>
 
-	<p><span style="font-size:18px">[root@oscontroller ~]# docker run -d -p 4000:5000 --restart=always -v /data/Iaas/Docker/Volumes/Registry:/var/lib/registry --name registry registry:2 &nbsp; &nbsp; &nbsp;# set -v param for storage images in path&nbsp;/data/Iaas/Docker/Volumes/Registry<br />
+	<p><span style="font-size:18px">[root@oscontroller ~]# docker run -d -p 4000:5000 --restart=always -v /data/Iaas/Docker/Volumes/Registry:/var/lib/registry --name registry registry:2 &nbsp; &nbsp; &nbsp;# 设置 -v 参数是为了在/data/Iaas/Docker/Volumes/Registry存储images<br />
 	[root@oscontroller docker]# docker stop registry<br />
 	[root@oscontroller ~]# docker ps</span><br />
 	<span style="font-size:12px">CONTAINER ID &nbsp; &nbsp; &nbsp; &nbsp;IMAGE &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; COMMAND &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;CREATED &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; STATUS &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;PORTS &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;NAMES<br />
@@ -348,7 +348,7 @@
 
 	<p>&nbsp;</p>
 
-	<p><strong><span style="font-size:18px">4. modify the configuration files of kolla</span></strong></p>
+	<p><strong><span style="font-size:18px">4. 修改kolla的配置文件</span></strong></p>
 
 	<p><br />
 	<span style="font-size:18px">[root@oscontroller ~]# cp /usr/share/kolla/ansible/inventory/multinode /usr/share/kolla/ansible/inventory/multinode.bak<br />
@@ -392,7 +392,7 @@
 	#neutron_external_interface: &quot;eth1&quot;</span><br />
 	<span style="font-size:18px">[root@oscontroller ~]# cat /etc/kolla/passwords.yml | grep database</span><br />
 	<span style="font-size:12px">cinder_database_password: sWluY2iHtHviFZdfx9CFA3rdeghaqow1fwuf14QR<br />
-	<strong>database_password: XI8EeKsOyhQaDYM2P6PK9nlyjbCjGEJwM1UuU9xy &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; # use this password you can login into mysql</strong><br />
+	<strong>database_password: XI8EeKsOyhQaDYM2P6PK9nlyjbCjGEJwM1UuU9xy &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; # 用这个密码你可以登录到mysql</strong><br />
 	glance_database_password: JubdRouJOTtNv0mIhSzgT9wRc3PuVEZFt9hkGCmX<br />
 	heat_database_password: JGZaVXnlLtA0QWjpOLM1qEmu13sFBF5b8vSbtFK0<br />
 	ironic_database_password: SumunjZPdSpZKcJYhZXjHHtMkR0Kp5Rg9aqD1ppv<br />
@@ -408,9 +408,9 @@
 
 	<p>&nbsp;</p>
 
-	<p><strong><span style="font-size:18px">5.&nbsp;Building Container Images</span></strong></p>
+	<p><strong><span style="font-size:18px">5.&nbsp;编译容器镜像</span></strong></p>
 
-	<p><span style="font-size:18px">[root@oscontroller ~]# kolla-build --base centos --type source --registry 192.168.1.61:4000 --push &nbsp; &nbsp; &nbsp; &nbsp;&nbsp; &nbsp; &nbsp; # this may spend one or two hour</span><br />
+	<p><span style="font-size:18px">[root@oscontroller ~]# kolla-build --base centos --type source --registry 192.168.1.61:4000 --push &nbsp; &nbsp; &nbsp; &nbsp;&nbsp; &nbsp; &nbsp; # 这个估计用几个小时</span><br />
 	<span style="font-size:12px">INFO:kolla.cmd.build:Found the docker image folder at /usr/share/kolla/docker<br />
 	INFO:kolla.cmd.build:base:Building<br />
 	INFO:kolla.cmd.build:base:Step 1 : FROM centos:latest<br />
@@ -475,13 +475,13 @@
 	({}, {&#39;aodh-expirer&#39;: &#39;built&#39;, &#39;nova-api&#39;: &#39;built&#39;, &#39;cinder-base&#39;: &#39;built&#39;, &#39;swift-container&#39;: &#39;built&#39;, &#39;designate-api&#39;: &#39;built&#39;, &#39;kolla-toolbox&#39;: &#39;built&#39;, &#39;heat-engine&#39;: &#39;built&#39;, &#39;gnocchi-base&#39;: &#39;built&#39;, &#39;openvswitch-vswitchd&#39;: &#39;built&#39;, &#39;nova-network&#39;: &#39;built&#39;, &#39;trove-base&#39;: &#39;built&#39;, &#39;heat-api-cfn&#39;: &#39;built&#39;, &#39;aodh-base&#39;: &#39;built&#39;, &#39;murano-engine&#39;: &#39;built&#39;, &#39;neutron-server&#39;: &#39;built&#39;, &#39;magnum-base&#39;: &#39;built&#39;, &#39;magnum-conductor&#39;: &#39;built&#39;, &#39;murano-api&#39;: &#39;built&#39;, &#39;mistral-executor&#39;: &#39;built&#39;, &#39;mesos-dns&#39;: &#39;built&#39;, &#39;nova-spicehtml5proxy&#39;: &#39;built&#39;, &#39;aodh-api&#39;: &#39;built&#39;, &#39;nova-libvirt&#39;: &#39;built&#39;, &#39;cinder-api&#39;: &#39;built&#39;, &#39;rabbitmq&#39;: &#39;built&#39;, &#39;manila-api&#39;: &#39;built&#39;, &#39;nova-base&#39;: &#39;built&#39;, &#39;zookeeper&#39;: &#39;built&#39;, &#39;kibana&#39;: &#39;built&#39;, &#39;cron&#39;: &#39;built&#39;, &#39;swift-proxy-server&#39;: &#39;built&#39;, &#39;aodh-evaluator&#39;: &#39;built&#39;, &#39;tempest&#39;: &#39;built&#39;, &#39;trove-guestagent&#39;: &#39;built&#39;, &#39;neutron-linuxbridge-agent&#39;: &#39;built&#39;, &#39;nova-ssh&#39;: &#39;built&#39;, &#39;magnum-api&#39;: &#39;built&#39;, &#39;keepalived&#39;: &#39;built&#39;, &#39;openstack-base&#39;: &#39;built&#39;, &#39;keystone&#39;: &#39;built&#39;, &#39;mongodb&#39;: &#39;built&#39;, &#39;ceph-mon&#39;: &#39;built&#39;, &#39;memcached&#39;: &#39;built&#39;, &#39;mesos-slave&#39;: &#39;built&#39;, &#39;heka&#39;: &#39;built&#39;, &#39;base&#39;: &#39;built&#39;, &#39;haproxy&#39;: &#39;built&#39;, &#39;ceilometer-collector&#39;: &#39;built&#39;, &#39;glance-api&#39;: &#39;built&#39;, &#39;swift-base&#39;: &#39;built&#39;, &#39;elasticsearch&#39;: &#39;built&#39;, &#39;horizon&#39;: &#39;built&#39;, &#39;cinder-scheduler&#39;: &#39;built&#39;, &#39;designate-sink&#39;: &#39;built&#39;, &#39;murano-base&#39;: &#39;built&#39;, &#39;dind&#39;: &#39;built&#39;, &#39;trove-api&#39;: &#39;built&#39;, &#39;designate-poolmanager&#39;: &#39;built&#39;, &#39;neutron-openvswitch-agent&#39;: &#39;built&#39;, &#39;ceilometer-compute&#39;: &#39;built&#39;, &#39;manila-scheduler&#39;: &#39;built&#39;, &#39;mesos-base&#39;: &#39;built&#39;, &#39;ceilometer-central&#39;: &#39;built&#39;, &#39;nova-novncproxy&#39;: &#39;built&#39;, &#39;mesos-master&#39;: &#39;built&#39;, &#39;designate-backend-bind9&#39;: &#39;built&#39;, &#39;gnocchi-api&#39;: &#39;built&#39;, &#39;ceilometer-base&#39;: &#39;built&#39;, &#39;heat-api&#39;: &#39;built&#39;, &#39;aodh-notifier&#39;: &#39;built&#39;, &#39;cinder-backup&#39;: &#39;built&#39;, &#39;nova-conductor&#39;: &#39;built&#39;, &#39;heat-base&#39;: &#39;built&#39;, &#39;designate-central&#39;: &#39;built&#39;, &#39;neutron-l3-agent&#39;: &#39;built&#39;, &#39;ironic-api&#39;: &#39;built&#39;, &#39;mistral-base&#39;: &#39;built&#39;, &#39;mistral-api&#39;: &#39;built&#39;, &#39;cinder-rpcbind&#39;: &#39;built&#39;, &#39;swift-object&#39;: &#39;built&#39;, &#39;openvswitch-base&#39;: &#39;built&#39;, &#39;ceph-base&#39;: &#39;built&#39;, &#39;cinder-volume&#39;: &#39;built&#39;, &#39;ceilometer-api&#39;: &#39;built&#39;, &#39;trove-taskmanager&#39;: &#39;built&#39;, &#39;swift-rsyncd&#39;: &#39;built&#39;, &#39;aodh-listener&#39;: &#39;built&#39;, &#39;glance-registry&#39;: &#39;built&#39;, &#39;mesosphere-base&#39;: &#39;built&#39;, &#39;openvswitch-db-server&#39;: &#39;built&#39;, &#39;ceph-rgw&#39;: &#39;built&#39;, &#39;chronos&#39;: &#39;built&#39;, &#39;marathon&#39;: &#39;built&#39;, &#39;ironic-base&#39;: &#39;built&#39;, &#39;mistral-engine&#39;: &#39;built&#39;, &#39;zaqar&#39;: &#39;built&#39;, &#39;nova-consoleauth&#39;: &#39;built&#39;, &#39;designate-base&#39;: &#39;built&#39;, &#39;neutron-dhcp-agent&#39;: &#39;built&#39;, &#39;neutron-base&#39;: &#39;built&#39;, &#39;designate-mdns&#39;: &#39;built&#39;, &#39;ceilometer-notification&#39;: &#39;built&#39;, &#39;ironic-inspector&#39;: &#39;built&#39;, &#39;ironic-conductor&#39;: &#39;built&#39;, &#39;nova-scheduler&#39;: &#39;built&#39;, &#39;manila-base&#39;: &#39;built&#39;, &#39;manila-share&#39;: &#39;built&#39;, &#39;ceph-osd&#39;: &#39;built&#39;, &#39;mariadb&#39;: &#39;built&#39;, &#39;swift-account&#39;: &#39;built&#39;, &#39;nova-compute&#39;: &#39;built&#39;, &#39;neutron-metadata-agent&#39;: &#39;built&#39;, &#39;nova-compute-ironic&#39;: &#39;built&#39;, &#39;glance-base&#39;: &#39;built&#39;, &#39;ironic-pxe&#39;: &#39;built&#39;, &#39;gnocchi-statsd&#39;: &#39;built&#39;, &#39;trove-conductor&#39;: &#39;built&#39;}, {})</span><br />
 	&nbsp;</p>
 
-	<p><span style="font-size:18px">if you are lucky, you&#39;ll see the state of all images is <strong>built</strong>, if you see some images is error or parent_error， you &nbsp;must rebuild that one.</span></p>
+	<p><span style="font-size:18px">如果你比较幸运，你会看到所有的镜像都是 <strong>built</strong> 状态, 如果你看到某个镜像是 error或parent_error状态， 你必须重新编译下.</span></p>
 
-	<p><span style="font-size:18px">forexample:</span></p>
+	<p><span style="font-size:18px">例如:</span></p>
 
 	<p><span style="font-size:18px">[root@oscontroller ~]#&nbsp;kolla-build --base centos --type source --registry 192.168.1.61:4000 --push ceph-base</span></p>
 
-	<p><span style="font-size:18px">if it timeout, you can modify the&nbsp;Dockerfile.j2, eg:</span></p>
+	<p><span style="font-size:18px">在国内有时候会出现超时情况，你可以参考修改&nbsp;Dockerfile.j2这个文件，多执行几次, eg:</span></p>
 
 	<p><span style="font-size:12px">[root@oscontroller docker]# vi /usr/share/kolla/docker/ceph/ceph-base/Dockerfile.j2<br />
 	FROM {{ namespace }}/{{ image_prefix }}base:{{ tag }}<br />
@@ -490,7 +490,7 @@
 	<p><span style="font-size:12px">{% if base_distro in [&#39;centos&#39;, &#39;fedora&#39;, &#39;oraclelinux&#39;, &#39;rhel&#39;] %}</span></p>
 
 	<p><strong><span style="font-size:12px">RUN yum install centos-release-openstack-mitaka.noarch -y<br />
-	RUN sed -i &#39;s/mirror.centos.org/mirrors.aliyun.com/g&#39; /etc/yum.repos.d/CentOS-OpenStack-mitaka.repo &nbsp; &nbsp; &nbsp; # in china, maybe you need this line</span></strong></p>
+	RUN sed -i &#39;s/mirror.centos.org/mirrors.aliyun.com/g&#39; /etc/yum.repos.d/CentOS-OpenStack-mitaka.repo &nbsp; &nbsp; &nbsp; # 在国内你可能需要这行</span></strong></p>
 
 	<p><span style="font-size:12px">RUN yum -y install ceph<br />
 	RUN yum -y install ceph-radosgw<br />
@@ -503,9 +503,9 @@
 
 	<p>&nbsp;</p>
 
-	<p><strong><span style="font-size:18px">6. Deploy Kolla</span></strong></p>
+	<p><strong><span style="font-size:18px">6. 部署Kolla</span></strong></p>
 
-	<p><strong><span style="font-size:18px">6.1 precheck and verify</span></strong></p>
+	<p><strong><span style="font-size:18px">6.1 提前检查下</span></strong></p>
 
 	<p><span style="font-size:18px">[root@oscontroller ~]# kolla-ansible prechecks -i /usr/share/kolla/ansible/inventory/multinode</span></p>
 
@@ -559,9 +559,9 @@
 	osnova2 &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;: ok=8 &nbsp; &nbsp;changed=0 &nbsp; &nbsp;unreachable=0 &nbsp; &nbsp;failed=0<br />
 	oscontroller &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; : ok=64 &nbsp; changed=0 &nbsp; &nbsp;unreachable=0 &nbsp; &nbsp;failed=0</strong></span></p>
 
-	<p>you should see all nodes is ok, none nodes is failed</p>
+	<p>你应该看到所有节点都是ok的</p>
 
-	<p><strong><span style="font-size:18px">6.2&nbsp;Verify that all required images with appropriate tags are available</span></strong></p>
+	<p><strong><span style="font-size:18px">6.2&nbsp;验证所有节点都能获取到所有的docker镜像</span></strong></p>
 
 	<p><span style="font-size:18px">[root@oscontroller ~]# kolla-ansible pull -i /usr/share/kolla/ansible/inventory/multinode</span></p>
 
@@ -652,13 +652,13 @@
 	oscontroller &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; : ok=49 &nbsp; changed=0 &nbsp; &nbsp;unreachable=0 &nbsp; &nbsp;failed=0</span></strong><br />
 	&nbsp;</p>
 
-	<p>you should see all nodes is ok, none nodes is failed</p>
+	<p>你应该看到所有节点都是ok的</p>
 
 	<p>&nbsp;</p>
 
-	<p><strong><span style="font-size:18px">6.3 begin to deploy</span></strong></p>
+	<p><strong><span style="font-size:18px">6.3 正式开始deploy</span></strong></p>
 
-	<p><span style="font-size:18px">[root@oscontroller ~]# kolla-ansible deploy -i /usr/share/kolla/ansible/inventory/multinode &nbsp; &nbsp; &nbsp; # this may spend one hour</span></p>
+	<p><span style="font-size:18px">[root@oscontroller ~]# kolla-ansible deploy -i /usr/share/kolla/ansible/inventory/multinode &nbsp; &nbsp; &nbsp; # 这个可能差不多一个小时</span></p>
 
 	<p><span style="font-size:12px">Deploying Playbooks : ansible-playbook -i /usr/share/kolla/ansible/inventory/multinode -e @/etc/kolla/globals.yml -e @/etc/kolla/passwords.yml -e CONFIG_DIR=/etc/kolla &nbsp;-e action=deploy /usr/share/kolla/ansible/site.yml</span></p>
 
@@ -785,9 +785,9 @@
 	oscontroller &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; : ok=299 &nbsp;changed=110 &nbsp;unreachable=0 &nbsp; &nbsp;failed=0</span></strong><br />
 	&nbsp;</p>
 
-	<p><span style="font-size:18px">all nodes should be ok.</span></p>
+	<p><span style="font-size:18px">所有节点都应该是ok的.</span></p>
 
-	<p><span style="font-size:18px">if you see some node is failed, you must deploy again, but before do that, you should execute:</span></p>
+	<p><span style="font-size:18px">如果你看到某个节点有失败，你需要重新部署, 重新部署前,你应该先执行：</span></p>
 
 	<p><span style="font-size:18px">[root@all &nbsp;~]# cd /data/kolla/tools/<br />
 	[root@all tools]# ./cleanup-containers<br />
@@ -795,27 +795,27 @@
 
 	<p>&nbsp;</p>
 
-	<p><strong><span style="font-size:18px">7. update</span></strong></p>
+	<p><strong><span style="font-size:18px">7. 更新</span></strong></p>
 
-	<p><span style="font-size:18px">sometime you neeed&nbsp;add or remove a computer node or controller node, you should modify /usr/share/kolla/ansible/inventory/multinode, then execute:</span></p>
+	<p><span style="font-size:18px">有时候你需要增加节点或删除节点, 你可以修改/usr/share/kolla/ansible/inventory/multinode, 然后执行:</span></p>
 
 	<p><span style="font-size:18px">kolla-ansible upgrade -i /usr/share/kolla/ansible/inventory/multinode</span></p>
 
 	<p>&nbsp;</p>
 
-	<p><strong><span style="font-size:18px">8.1 visit&nbsp;horizon</span></strong></p>
+	<p><strong><span style="font-size:18px">8.1 访问控制界面</span></strong></p>
 
 	<p><span style="font-size:18px">[root@oscontroller ~]# cat /etc/kolla/passwords.yml | grep keystone_admin_password</span></p>
 
 	<p><span style="font-size:12px">keystone_admin_password: ynRZeY85GzGd4Fa5VK7UBB0lNbpNUXrXawQBmJCO</span></p>
 
-	<p><span style="font-size:18px">now you can open http://192.168.1.61</span></p>
+	<p><span style="font-size:18px">浏览器访问：http://192.168.1.61</span></p>
 
 	<p><span style="font-size:18px">login with:</span></p>
 
 	<p><span style="font-size:18px">domain: default&nbsp;&nbsp; &nbsp;username:admin&nbsp;&nbsp; &nbsp;pwd: ynRZeY85GzGd4Fa5VK7UBB0lNbpNUXrXawQBmJCO</span></p>
 
-	<p><strong><span style="font-size:18px">8.2&nbsp;create an openrc file</span></strong></p>
+	<p><strong><span style="font-size:18px">8.2&nbsp;创建openrc文件</span></strong></p>
 
 	<p><span style="font-size:18px">[root@oscontroller ~]# kolla-ansible post-deploy</span></p>
 
@@ -832,21 +832,21 @@
 
 	<p>&nbsp;</p>
 
-	<p><strong><span style="font-size:18px">8.3 initialize network and a glance</span></strong></p>
+	<p><strong><span style="font-size:18px">8.3 初始化网络及glance（也可以通过horizon创建）</span></strong></p>
 
 	<p><span style="font-size:18px">[root@oscontroller ~]# /data/Iaas/OpenStack/kolla/tools/init-runonce</span></p>
 
 	<p>&nbsp;</p>
 
-	<p><span style="font-size:18px">All finished. you can see the initalize network from&nbsp;http://192.168.1.61.</span></p>
+	<p><span style="font-size:18px">执行后，你可以通过&nbsp;http://192.168.1.61 查看你常见的网络.</span></p>
 
 	<p>&nbsp;</p>
 
-	<p><span style="font-size:18px">Sometime, after you recreated your network, if the gateway of your network can not ping, you may need reboot some node. or assign interface to vm instances.</span></p>
+	<p><span style="font-size:18px">有时候，你重新创建网络后，若网关不通，你可以试试重启相关节点，或重新分配接口给实例</span></p>
 
 	<p>&nbsp;</p>
 
-	<p><span style="font-size:18px">enjoy yourself!</span></p>
+	<p><span style="font-size:18px">一切顺利!</span></p>
 
 	<p>&nbsp;</p>
 
